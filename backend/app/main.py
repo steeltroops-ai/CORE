@@ -1,0 +1,23 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from .api.routes import router
+
+
+def create_app() -> FastAPI:
+    app = FastAPI(title="CORE Backend", version="0.1.0")
+    
+    # Add CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:3001", "http://localhost:3000"],  # Frontend URLs
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    
+    app.include_router(router)
+    return app
+
+
+app = create_app()

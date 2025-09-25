@@ -1,0 +1,103 @@
+{
+  "test_summary": {
+    "total_tests": 7,
+    "passed_tests": 4,
+    "failed_tests": 3,
+    "success_rate": "57.1%",
+    "total_execution_time": "22.69s",
+    "timestamp": "2025-09-26T03:05:37.003069"
+  },
+  "detailed_results": [
+    {
+      "test_name": "Backend Health Check",
+      "success": true,
+      "timestamp": "2025-09-26T03:05:16.357959",
+      "details": {
+        "status_code": 200,
+        "response": {
+          "status": "ok",
+          "service": "core-backend",
+          "tracks": "tech-transfer"
+        }
+      },
+      "error": null
+    },
+    {
+      "test_name": "Claude API Health Check",
+      "success": true,
+      "timestamp": "2025-09-26T03:05:20.309292",
+      "details": {
+        "status_code": 200,
+        "response": {
+          "status": "healthy",
+          "message": "Claude API is accessible and responding"
+        }
+      },
+      "error": null
+    },
+    {
+      "test_name": "Simple Chat Test",
+      "success": false,
+      "timestamp": "2025-09-26T03:05:22.383547",
+      "details": {},
+      "error": "('Connection aborted.', ConnectionResetError(10054, 'An existing connection was forcibly closed by the remote host', None, 10054, None))"
+    },
+    {
+      "test_name": "Chat with Context Test",
+      "success": "In the given context, I am an AI assistant for the CORE project, which is a comprehensive chatbot system with a Python backend and a React frontend. As an AI assistant, my role is to provide helpful information and support within the scope of this project.\n\nThe CORE project is likely a conversational AI system that integrates a Python-based backend to handle the logic and processing, while the frontend is built using the React JavaScript library for user interface development.\n\nAs an AI assistant for this project, I can assist with various tasks related to the chatbot system, such as:\n\n1. Providing information about the CORE project's features, capabilities, and use cases.\n2. Helping users navigate and interact with the chatbot interface.\n3. Answering questions about the technical aspects of the system, such as the integration between the Python backend and the React frontend.\n4. Offering guidance on how to customize or extend the CORE project to meet specific requirements.\n5. Troubleshooting any issues or problems users might encounter while using the chatbot system.\n\nOverall, my role is to be a knowledgeable and helpful AI assistant within the context of the CORE project, leveraging my capabilities to support users and contribute to the success of the chatbot system.",
+      "timestamp": "2025-09-26T03:05:28.477572",
+      "details": {
+        "response_time": "6.09s",
+        "response_length": 1289,
+        "context_relevant": true,
+        "usage": {
+          "input_tokens": 52,
+          "output_tokens": 273
+        }
+      },
+      "error": null
+    },
+    {
+      "test_name": "Conversation History Test",
+      "success": "I'm afraid I don't have enough context to recall the specific question you asked me previously. As an AI assistant, I don't have a persistent memory of our full conversation history. I'd be happy to try and assist you with your current query, but could you please restate what you would like me to help with?",
+      "timestamp": "2025-09-26T03:05:31.632657",
+      "details": {
+        "response_time": "3.15s",
+        "response_length": 308,
+        "history_relevant": true,
+        "usage": {
+          "input_tokens": 38,
+          "output_tokens": 69
+        }
+      },
+      "error": null
+    },
+    {
+      "test_name": "Error Handling Test",
+      "success": true,
+      "timestamp": "2025-09-26T03:05:33.668762",
+      "details": {
+        "status_code": 422,
+        "expected_error": "Validation error for missing fields"
+      },
+      "error": null
+    },
+    {
+      "test_name": "Performance Load Test",
+      "success": true,
+      "timestamp": "2025-09-26T03:05:37.002025",
+      "details": {
+        "total_requests": 3,
+        "successful_requests": 3,
+        "success_rate": "100.0%",
+        "average_response_time": "3.15s",
+        "individual_times": [
+          "2.98s",
+          "3.14s",
+          "3.32s"
+        ]
+      },
+      "error": null
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "timestamp": 137789.8666343,
+  "total_tests": 6,
+  "passed_tests": 6,
+  "failed_tests": 0,
+  "results": [
+    {
+      "test": "Configuration Test",
+      "success": true,
+      "message": "Configuration is valid",
+      "details": {
+        "api_url": "https://api.anthropic.com/v1/messages",
+        "api_key_configured": true
+      }
+    },
+    {
+      "test": "Health Check Test",
+      "success": true,
+      "message": "Health check passed",
+      "details": {
+        "status": "healthy",
+        "message": "Claude API is accessible and responding"
+      }
+    },
+    {
+      "test": "Simple Message Test",
+      "success": true,
+      "message": "Simple message test passed",
+      "details": {
+        "response_length": 16,
+        "usage": {
+          "input_tokens": 46,
+          "output_tokens": 6
+        }
+      }
+    },
+    {
+      "test": "Context Message Test",
+      "success": true,
+      "message": "Context message test passed",
+      "details": {
+        "response_length": 898,
+        "context_relevant": true,
+        "usage": {
+          "input_tokens": 42,
+          "output_tokens": 171
+        }
+      }
+    },
+    {
+      "test": "Conversation History Test",
+      "success": true,
+      "message": "Conversation history test passed",
+      "details": {
+        "response_length": 1263,
+        "has_example": true,
+        "usage": {
+          "input_tokens": 71,
+          "output_tokens": 249
+        }
+      }
+    },
+    {
+      "test": "Error Handling Test",
+      "success": true,
+      "message": "Error handling test passed - empty message handled",
+      "details": {
+        "empty_message_handled": true
+      }
+    }
+  ]
+}

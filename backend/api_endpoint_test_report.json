@@ -1,0 +1,100 @@
+{
+  "timestamp": 1758835985.548506,
+  "base_url": "http://localhost:8000",
+  "total_tests": 7,
+  "passed_tests": 7,
+  "failed_tests": 0,
+  "results": [
+    {
+      "test": "Server Health Test",
+      "success": true,
+      "message": "Server is healthy",
+      "details": {
+        "status_code": 200,
+        "response": {
+          "status": "ok",
+          "service": "core-backend",
+          "tracks": "tech-transfer"
+        }
+      },
+      "timestamp": 1758835954.4253833
+    },
+    {
+      "test": "Chat Health Test",
+      "success": true,
+      "message": "Chat health check passed",
+      "details": {
+        "status": "healthy",
+        "message": "Claude API is accessible and responding"
+      },
+      "timestamp": 1758835957.477707
+    },
+    {
+      "test": "Simple Chat Test",
+      "success": true,
+      "message": "Simple chat test passed",
+      "details": {
+        "response_length": 137,
+        "usage": {
+          "input_tokens": 42,
+          "output_tokens": 34
+        }
+      },
+      "timestamp": 1758835960.33099
+    },
+    {
+      "test": "Chat with Context Test",
+      "success": true,
+      "message": "Chat with context test passed",
+      "details": {
+        "response_length": 2968,
+        "context_relevant": true,
+        "usage": {
+          "input_tokens": 38,
+          "output_tokens": 592
+        }
+      },
+      "timestamp": 1758835966.975095
+    },
+    {
+      "test": "Chat with History Test",
+      "success": true,
+      "message": "Chat with history test passed",
+      "details": {
+        "response_length": 1708,
+        "contextually_relevant": true,
+        "usage": {
+          "input_tokens": 66,
+          "output_tokens": 312
+        }
+      },
+      "timestamp": 1758835971.6973932
+    },
+    {
+      "test": "Error Handling Test",
+      "success": true,
+      "message": "Error handling test passed - validation error caught",
+      "details": {
+        "status_code": 422
+      },
+      "timestamp": 1758835973.7489016
+    },
+    {
+      "test": "Performance Test",
+      "success": true,
+      "message": "Performance test completed",
+      "details": {
+        "total_requests": 3,
+        "successful_requests": 3,
+        "success_rate": "100.0%",
+        "average_response_time": "2.93s",
+        "response_times": [
+          "2.82s",
+          "3.24s",
+          "2.75s"
+        ]
+      },
+      "timestamp": 1758835985.5472083
+    }
+  ]
+}
