@@ -1,0 +1,286 @@
+{
+  "testSuite": "Frontend Document Upload",
+  "timestamp": 1758870365465,
+  "totalTests": 5,
+  "passedTests": 4,
+  "failedTests": 1,
+  "successRate": "80.0%",
+  "backendHealth": true,
+  "claudeIntegration": true,
+  "extractionPipeline": {
+    "totalDocuments": 3,
+    "successfulExtractions": 3,
+    "failedExtractions": 0,
+    "extractionDetails": [
+      {
+        "documentName": "Quantum Computing Research",
+        "processingTime": 7954,
+        "analysisId": "af01574d-1dd8-4ff0-bac4-749333f1f8af",
+        "extractionValidation": {
+          "hasTitle": true,
+          "hasAbstract": true,
+          "hasTechnologies": true,
+          "hasDomain": true,
+          "hasApplications": true,
+          "confidenceScore": 1,
+          "technologyMatch": true,
+          "domainMatch": false,
+          "overallQuality": "high"
+        },
+        "formatValidation": {
+          "hasAnalysisId": true,
+          "hasExtractedData": true,
+          "hasSimilarityResults": true,
+          "hasOptimizationMetrics": true,
+          "properSimilarityFormat": false,
+          "properMetricsFormat": true
+        },
+        "similarityValidation": {
+          "totalResults": 0,
+          "hasResults": false,
+          "averageScore": 0,
+          "highQualityResults": 0,
+          "resultDiversity": 0
+        }
+      },
+      {
+        "documentName": "Renewable Energy Patent",
+        "processingTime": 8208,
+        "analysisId": "717f7649-4aa0-4b9c-91e8-e862b98d67af",
+        "extractionValidation": {
+          "hasTitle": true,
+          "hasAbstract": true,
+          "hasTechnologies": true,
+          "hasDomain": true,
+          "hasApplications": true,
+          "confidenceScore": 1,
+          "technologyMatch": true,
+          "domainMatch": true,
+          "overallQuality": "high"
+        },
+        "formatValidation": {
+          "hasAnalysisId": true,
+          "hasExtractedData": true,
+          "hasSimilarityResults": true,
+          "hasOptimizationMetrics": true,
+          "properSimilarityFormat": false,
+          "properMetricsFormat": true
+        },
+        "similarityValidation": {
+          "totalResults": 0,
+          "hasResults": false,
+          "averageScore": 0,
+          "highQualityResults": 0,
+          "resultDiversity": 0
+        }
+      },
+      {
+        "documentName": "Medical Device Innovation",
+        "processingTime": 8790,
+        "analysisId": "0f6bd884-37a7-422b-ac7a-7cf9aeb931b3",
+        "extractionValidation": {
+          "hasTitle": true,
+          "hasAbstract": true,
+          "hasTechnologies": true,
+          "hasDomain": true,
+          "hasApplications": true,
+          "confidenceScore": 1,
+          "technologyMatch": false,
+          "domainMatch": false,
+          "overallQuality": "medium"
+        },
+        "formatValidation": {
+          "hasAnalysisId": true,
+          "hasExtractedData": true,
+          "hasSimilarityResults": true,
+          "hasOptimizationMetrics": true,
+          "properSimilarityFormat": false,
+          "properMetricsFormat": true
+        },
+        "similarityValidation": {
+          "totalResults": 0,
+          "hasResults": false,
+          "averageScore": 0,
+          "highQualityResults": 0,
+          "resultDiversity": 0
+        }
+      }
+    ],
+    "averageProcessingTime": 8317.333333333334
+  },
+  "apiCompliance": true,
+  "errorHandling": false,
+  "detailedResults": [
+    {
+      "test": "Backend Health Check",
+      "success": true,
+      "message": "Backend is healthy",
+      "details": {
+        "status": "ok",
+        "service": "core-backend"
+      },
+      "timestamp": 1758870327752
+    },
+    {
+      "test": "Claude API Integration",
+      "success": true,
+      "message": "Claude API is accessible",
+      "details": {
+        "status": "healthy",
+        "message": "Claude API is accessible and responding"
+      },
+      "timestamp": 1758870328820
+    },
+    {
+      "test": "Document Extraction Pipeline",
+      "success": true,
+      "message": "Processed 3/3 documents",
+      "details": {
+        "totalDocuments": 3,
+        "successfulExtractions": 3,
+        "failedExtractions": 0,
+        "extractionDetails": [
+          {
+            "documentName": "Quantum Computing Research",
+            "processingTime": 7954,
+            "analysisId": "af01574d-1dd8-4ff0-bac4-749333f1f8af",
+            "extractionValidation": {
+              "hasTitle": true,
+              "hasAbstract": true,
+              "hasTechnologies": true,
+              "hasDomain": true,
+              "hasApplications": true,
+              "confidenceScore": 1,
+              "technologyMatch": true,
+              "domainMatch": false,
+              "overallQuality": "high"
+            },
+            "formatValidation": {
+              "hasAnalysisId": true,
+              "hasExtractedData": true,
+              "hasSimilarityResults": true,
+              "hasOptimizationMetrics": true,
+              "properSimilarityFormat": false,
+              "properMetricsFormat": true
+            },
+            "similarityValidation": {
+              "totalResults": 0,
+              "hasResults": false,
+              "averageScore": 0,
+              "highQualityResults": 0,
+              "resultDiversity": 0
+            }
+          },
+          {
+            "documentName": "Renewable Energy Patent",
+            "processingTime": 8208,
+            "analysisId": "717f7649-4aa0-4b9c-91e8-e862b98d67af",
+            "extractionValidation": {
+              "hasTitle": true,
+              "hasAbstract": true,
+              "hasTechnologies": true,
+              "hasDomain": true,
+              "hasApplications": true,
+              "confidenceScore": 1,
+              "technologyMatch": true,
+              "domainMatch": true,
+              "overallQuality": "high"
+            },
+            "formatValidation": {
+              "hasAnalysisId": true,
+              "hasExtractedData": true,
+              "hasSimilarityResults": true,
+              "hasOptimizationMetrics": true,
+              "properSimilarityFormat": false,
+              "properMetricsFormat": true
+            },
+            "similarityValidation": {
+              "totalResults": 0,
+              "hasResults": false,
+              "averageScore": 0,
+              "highQualityResults": 0,
+              "resultDiversity": 0
+            }
+          },
+          {
+            "documentName": "Medical Device Innovation",
+            "processingTime": 8790,
+            "analysisId": "0f6bd884-37a7-422b-ac7a-7cf9aeb931b3",
+            "extractionValidation": {
+              "hasTitle": true,
+              "hasAbstract": true,
+              "hasTechnologies": true,
+              "hasDomain": true,
+              "hasApplications": true,
+              "confidenceScore": 1,
+              "technologyMatch": false,
+              "domainMatch": false,
+              "overallQuality": "medium"
+            },
+            "formatValidation": {
+              "hasAnalysisId": true,
+              "hasExtractedData": true,
+              "hasSimilarityResults": true,
+              "hasOptimizationMetrics": true,
+              "properSimilarityFormat": false,
+              "properMetricsFormat": true
+            },
+            "similarityValidation": {
+              "totalResults": 0,
+              "hasResults": false,
+              "averageScore": 0,
+              "highQualityResults": 0,
+              "resultDiversity": 0
+            }
+          }
+        ],
+        "averageProcessingTime": 8317.333333333334
+      },
+      "timestamp": 1758870353782
+    },
+    {
+      "test": "Logic Mill API Compliance",
+      "success": true,
+      "message": "API compliance validation completed",
+      "details": {
+        "documentPartsStructure": true,
+        "graphqlCompatibility": true,
+        "encodingParameters": true,
+        "responseFormat": true
+      },
+      "timestamp": 1758870359624
+    },
+    {
+      "test": "Error Handling and Recovery",
+      "success": false,
+      "message": "Error handling validation completed",
+      "details": {
+        "scenariosTested": 4,
+        "properlyHandled": 1,
+        "details": [
+          {
+            "scenario": "Empty Content",
+            "statusCode": 200,
+            "handledGracefully": false
+          },
+          {
+            "scenario": "Invalid Document Type",
+            "statusCode": 200,
+            "handledGracefully": false
+          },
+          {
+            "scenario": "Missing Required Fields",
+            "error": "Request failed with status code 422",
+            "handledGracefully": true
+          },
+          {
+            "scenario": "Extremely Large Content",
+            "statusCode": 200,
+            "handledGracefully": false
+          }
+        ]
+      },
+      "timestamp": 1758870365464
+    }
+  ]
+}

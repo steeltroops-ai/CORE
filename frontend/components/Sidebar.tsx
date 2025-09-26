@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
 import {
   FiHome,
   FiEye,
@@ -15,11 +17,122 @@ import {
   FiChevronRight,
   FiChevronsLeft,
 } from "react-icons/fi";
+import {
+  SignInButton,
+  SignUpButton,
+  UserButton,
+  SignedIn,
+  SignedOut,
+  useUser,
+} from "@clerk/nextjs";
+
+// Check if Clerk is available by checking environment variables
+const isClerkAvailable = () => {
+  if (typeof window === "undefined") {
+    // Server-side: check environment variables
+    const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+    return (
+      publishableKey &&
+      !publishableKey.includes("placeholder") &&
+      !publishableKey.includes("YOUR_PUBLISHABLE_KEY") &&
+      publishableKey.startsWith("pk_")
+    );
+  }
+  // Client-side: assume available if we reach here
+  return true;
+};
+
+// Component that uses Clerk hooks when available
+function ClerkUserInfo({ actuallyCollapsed }: { actuallyCollapsed: boolean }) {
+  const { user } = useUser();
+
+  if (actuallyCollapsed || !user) return null;
+
+  return (
+    <div className="flex-1 min-w-0">
+      <p className="text-sm font-medium text-white truncate">
+        {user.fullName || user.firstName || "User"}
+      </p>
+      <p className="text-xs text-slate-400 truncate">
+        {user.primaryEmailAddress?.emailAddress || ""}
+      </p>
+    </div>
+  );
+}
+
+// Fallback component when Clerk is not available
+function FallbackUserInfo({
+  actuallyCollapsed,
+}: {
+  actuallyCollapsed: boolean;
+}) {
+  if (actuallyCollapsed) return null;
+
+  return (
+    <div className="flex-1 min-w-0">
+      <p className="text-sm font-medium text-white truncate">Guest User</p>
+      <p className="text-xs text-slate-400 truncate">Not signed in</p>
+    </div>
+  );
+}
+
+// Safe wrapper components that handle when Clerk is not available
+const SafeSignedOut = ({ children }: { children: React.ReactNode }) => {
+  if (!isClerkAvailable()) {
+    return <>{children}</>; // Show signed out UI when Clerk is not available
+  }
+  return <SignedOut>{children}</SignedOut>;
+};
+
+const SafeSignedIn = ({ children }: { children: React.ReactNode }) => {
+  if (!isClerkAvailable()) {
+    return null; // Hide signed in UI when Clerk is not available
+  }
+  return <SignedIn>{children}</SignedIn>;
+};
+
+const SafeSignInButton = ({
+  children,
+  mode,
+}: {
+  children: React.ReactNode;
+  mode?: string;
+}) => {
+  if (!isClerkAvailable()) {
+    return <>{children}</>; // Render button without Clerk functionality
+  }
+  return <SignInButton mode={mode as any}>{children}</SignInButton>;
+};
+
+const SafeSignUpButton = ({
+  children,
+  mode,
+}: {
+  children: React.ReactNode;
+  mode?: string;
+}) => {
+  if (!isClerkAvailable()) {
+    return <>{children}</>; // Render button without Clerk functionality
+  }
+  return <SignUpButton mode={mode as any}>{children}</SignUpButton>;
+};
+
+const SafeUserButton = ({ appearance }: { appearance?: any }) => {
+  if (!isClerkAvailable()) {
+    // Fallback user avatar when Clerk is not available
+    return (
+      <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white">
+        <FiUser size={16} />
+      </div>
+    );
+  }
+  return <UserButton appearance={appearance} />;
+};
 import { LuLightbulb } from "react-icons/lu";
 
 type SidebarProps = {
-  activeView: string;
-  onNavigate: (view: string) => void;
+  activeView?: string;
+  onNavigate?: (view: string) => void;
   onSidebarStateChange?: (isCollapsed: boolean) => void;
 };
 
@@ -28,50 +141,105 @@ const NAV_ITEMS = [
     key: "dashboard",
     label: "Dashboard",
     icon: FiHome,
+    href: "/",
     description: "Display overview, recent uploads, and quick statistics",
   },
   {
     key: "insights",
     label: "Insights",
     icon: FiEye,
+    href: "/insights",
     description: "Analyze novelty, competitors, and licensing data",
   },
   {
     key: "vc-lens",
     label: "VC Lens",
     icon: FiTrendingUp,
+    href: "/vc-lens",
     description: "Startup evaluation dashboard",
   },
   {
     key: "gtm-lab",
     label: "GTM Lab",
     icon: FiTarget,
+    href: "/gtm-lab",
     description: "Product development and go-to-market strategy generation",
   },
   {
     key: "assistant",
     label: "Assistant",
     icon: FiMessageSquare,
+    href: "/assistant",
     description: "Direct access to AI chat assistant",
   },
   {
     key: "research-papers",
     label: "Research Papers",
     icon: FiUpload,
+    href: "/research-papers",
     description: "Manage uploaded research papers and studies",
   },
 ];
+
+const BOTTOM_NAV_ITEMS = [
+  {
+    key: "settings",
+    label: "Settings",
+    icon: FiSettings,
+    href: "/settings",
+    description: "Accessibility settings, developer tools, and preferences",
+  },
+  {
+    key: "help",
+    label: "Help",
+    icon: FiHelpCircle,
+    href: "/help",
+    description: "Documentation, tutorials, and support",
+  },
+];
+
+// Component to display authenticated user info
+function AuthenticatedUserInfo({
+  actuallyCollapsed,
+}: {
+  actuallyCollapsed: boolean;
+}) {
+  const clerkAvailable = isClerkAvailable();
+
+  if (clerkAvailable) {
+    return <ClerkUserInfo actuallyCollapsed={actuallyCollapsed} />;
+  }
+
+  return <FallbackUserInfo actuallyCollapsed={actuallyCollapsed} />;
+}
 
 export function Sidebar({
   activeView,
   onNavigate,
   onSidebarStateChange,
 }: SidebarProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [isLogoHovered, setIsLogoHovered] = useState(false);
 
   // Use only the collapsed state
   const actuallyCollapsed = isCollapsed;
+
+  // Determine active view from pathname if not provided
+  const currentActiveView =
+    activeView ||
+    (() => {
+      if (pathname === "/") return "dashboard";
+      if (pathname.startsWith("/insights")) return "insights";
+      if (pathname.startsWith("/vc-lens")) return "vc-lens";
+      if (pathname.startsWith("/gtm-lab")) return "gtm-lab";
+      if (pathname.startsWith("/assistant")) return "assistant";
+      if (pathname.startsWith("/research-papers")) return "research-papers";
+      if (pathname.startsWith("/settings")) return "settings";
+      if (pathname.startsWith("/help")) return "help";
+      return "dashboard";
+    })();
 
   // Notify parent component of sidebar state changes
   useEffect(() => {
@@ -85,18 +253,18 @@ export function Sidebar({
   return (
     <aside
       className={`fixed left-0 top-0 z-40 h-full transition-all duration-300 ease-in-out ${
-        actuallyCollapsed ? "w-20" : "w-72"
-      } flex flex-col border-r border-slate-800/50 bg-gradient-to-b from-slate-950/98 to-slate-900/98 backdrop-blur-xl shadow-2xl`}
+        actuallyCollapsed ? "w-16" : "w-64"
+      } flex flex-col border-r border-slate-200/10 bg-slate-950/95 backdrop-blur-md`}
     >
       {/* Logo and Toggle Section */}
-      <div className="flex items-center justify-between px-6 py-5 border-b border-slate-800/50">
+      <div className="flex items-center justify-between px-4 py-5 border-b border-slate-200/5">
         {!actuallyCollapsed ? (
           /* Expanded State - Inline Logo with Subheading */
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-emerald-300 tracking-tight">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <h1 className="text-lg font-semibold text-white tracking-tight relative logo-shine flex-shrink-0">
               CORE
             </h1>
-            <span className="text-xs text-slate-400 font-medium tracking-wide">
+            <span className="text-xs text-slate-400 font-normal truncate">
               Commercialization & Research Evaluator
             </span>
           </div>
@@ -108,15 +276,15 @@ export function Sidebar({
             onMouseLeave={() => setIsLogoHovered(false)}
             onClick={() => setIsCollapsed(false)}
           >
-            {/* Logo Text - Disappears on hover */}
-            <div 
-              className={`text-emerald-300 font-bold text-xl tracking-tight transition-all duration-200 ${
-                isLogoHovered ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+            {/* Logo Text - Disappears on hover with shining effect */}
+            <div
+              className={`text-white font-semibold text-lg tracking-tight transition-all duration-200 relative logo-shine ${
+                isLogoHovered ? "opacity-0 scale-95" : "opacity-100 scale-100"
               }`}
             >
               CORE
             </div>
-            
+
             {/* Expand Button - Replaces logo completely on hover */}
             {actuallyCollapsed && isLogoHovered && (
               <button
@@ -124,7 +292,7 @@ export function Sidebar({
                   e.stopPropagation();
                   setIsCollapsed(false);
                 }}
-                className="absolute inset-0 flex items-center justify-center text-emerald-300"
+                className="absolute inset-0 flex items-center justify-center text-white"
                 aria-label="Expand sidebar"
               >
                 <FiChevronRight className="h-8 w-8" />
@@ -137,7 +305,7 @@ export function Sidebar({
         {!actuallyCollapsed && (
           <button
             onClick={() => setIsCollapsed(true)}
-            className="rounded-lg p-2 bg-slate-800/50 text-slate-400 transition-all duration-200 hover:bg-emerald-500/20 hover:text-emerald-300 hover:scale-105"
+            className="rounded-lg p-2 text-slate-400 transition-all duration-200 hover:text-white hover:bg-slate-800/50"
             aria-label="Collapse sidebar"
           >
             <FiChevronsLeft className="h-4 w-4" />
@@ -146,34 +314,41 @@ export function Sidebar({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-4 py-2">
-        <div className="space-y-1">
+      <nav className="flex-1 px-3 py-4 flex flex-col">
+        {/* Main Navigation Items */}
+        <div className="space-y-2">
           {NAV_ITEMS.map((item) => (
-            <button
+            <Link
               key={item.key}
-              onClick={() => onNavigate(item.key)}
-              className={`group relative w-full rounded-xl transition-all duration-200 ${
-                actuallyCollapsed ? "px-3 py-4" : "px-4 py-3"
+              href={item.href}
+              className={`group relative w-full rounded-lg transition-all duration-200 block ${
+                actuallyCollapsed ? "px-3 py-3" : "px-3 py-2.5"
               } ${
-                activeView === item.key
-                  ? "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/25 scale-[1.02]"
-                  : "text-slate-300 hover:bg-slate-800/60 hover:text-emerald-300 hover:scale-[1.01]"
+                currentActiveView === item.key
+                  ? "bg-emerald-500 text-white font-medium"
+                  : "text-slate-400 hover:bg-emerald-500/10 hover:text-emerald-400"
               }`}
               title={actuallyCollapsed ? item.label : undefined}
+              onClick={() => {
+                // Call onNavigate if provided (for backward compatibility)
+                onNavigate?.(item.key);
+              }}
             >
               <div
                 className={`flex items-center ${
                   actuallyCollapsed ? "justify-center" : "gap-4"
                 }`}
               >
-                <item.icon 
+                <item.icon
                   className={`flex-shrink-0 transition-all duration-200 ${
-                    activeView === item.key ? "text-white" : "text-current"
-                  }`} 
-                  size={actuallyCollapsed ? 20 : 18} 
+                    currentActiveView === item.key
+                      ? "text-white"
+                      : "text-current"
+                  }`}
+                  size={actuallyCollapsed ? 18 : 16}
                 />
                 {!actuallyCollapsed && (
-                  <span className="font-medium text-sm tracking-wide truncate">
+                  <span className="font-normal text-sm truncate">
                     {item.label}
                   </span>
                 )}
@@ -181,82 +356,151 @@ export function Sidebar({
 
               {/* Tooltip for collapsed state */}
               {actuallyCollapsed && (
-                <div className="absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-slate-200 opacity-0 shadow-xl transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-1 backdrop-blur-sm">
-                  <div className="font-medium">{item.label}</div>
-                  <div className="text-xs text-slate-400 mt-1 max-w-48">
+                <div className="absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 rounded-md bg-slate-900/95 border border-slate-700/50 px-3 py-2 text-sm text-slate-200 opacity-0 shadow-lg transition-all duration-200 group-hover:opacity-100 backdrop-blur-sm">
+                  <div className="font-medium text-white">{item.label}</div>
+                  <div className="text-xs text-slate-400 mt-1 max-w-44">
                     {item.description}
                   </div>
-                  <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900"></div>
+                  <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900/95"></div>
                 </div>
               )}
-            </button>
+            </Link>
           ))}
+        </div>
+
+        {/* Bottom Navigation Items */}
+        <div className="mt-auto pt-4 border-t border-slate-200/5">
+          <div className="space-y-2">
+            {BOTTOM_NAV_ITEMS.map((item) => (
+              <Link
+                key={item.key}
+                href={item.href}
+                className={`group relative w-full rounded-lg transition-all duration-200 block ${
+                  actuallyCollapsed ? "px-3 py-3" : "px-3 py-2.5"
+                } ${
+                  currentActiveView === item.key
+                    ? "bg-emerald-500 text-white font-medium"
+                    : "text-slate-400 hover:bg-emerald-500/10 hover:text-emerald-400"
+                }`}
+                title={actuallyCollapsed ? item.label : undefined}
+                onClick={() => {
+                  // Call onNavigate if provided (for backward compatibility)
+                  onNavigate?.(item.key);
+                }}
+              >
+                <div
+                  className={`flex items-center ${
+                    actuallyCollapsed ? "justify-center" : "gap-4"
+                  }`}
+                >
+                  <item.icon
+                    className={`flex-shrink-0 transition-all duration-200 ${
+                      currentActiveView === item.key
+                        ? "text-white"
+                        : "text-current"
+                    }`}
+                    size={actuallyCollapsed ? 18 : 16}
+                  />
+                  {!actuallyCollapsed && (
+                    <span className="font-normal text-sm truncate">
+                      {item.label}
+                    </span>
+                  )}
+                </div>
+
+                {/* Tooltip for collapsed state */}
+                {actuallyCollapsed && (
+                  <div className="absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 rounded-md bg-slate-900/95 border border-slate-700/50 px-3 py-2 text-sm text-slate-200 opacity-0 shadow-lg transition-all duration-200 group-hover:opacity-100 backdrop-blur-sm">
+                    <div className="font-medium text-white">{item.label}</div>
+                    <div className="text-xs text-slate-400 mt-1 max-w-44">
+                      {item.description}
+                    </div>
+                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900/95"></div>
+                  </div>
+                )}
+              </Link>
+            ))}
+          </div>
         </div>
       </nav>
 
       {/* Account Section */}
-      <div className="border-t border-slate-800/50 px-4 py-4 mt-auto">
-        {!actuallyCollapsed ? (
-          <>
-            {/* User Profile */}
-            <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-900/60 hover:bg-slate-800/60 transition-all duration-200 cursor-pointer group border border-slate-800/30 hover:border-slate-700/50">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-white font-semibold shadow-lg">
-                <FiUser size={18} />
+      <div className="border-t border-slate-200/5 px-3 py-4 mt-auto">
+        <SafeSignedOut>
+          <div className="space-y-2">
+            {actuallyCollapsed ? (
+              <div className="flex flex-col gap-2">
+                <SafeSignInButton mode="modal">
+                  <button
+                    className="group relative w-full rounded-lg transition-all duration-200 flex items-center p-3 justify-center bg-emerald-500 hover:bg-emerald-600 text-white"
+                    title="Sign In"
+                  >
+                    <FiUser size={14} />
+                    {/* Tooltip for collapsed state */}
+                    <div className="absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 rounded-md bg-slate-900/95 border border-slate-700/50 px-3 py-2 text-sm text-slate-200 opacity-0 shadow-lg transition-all duration-200 group-hover:opacity-100 backdrop-blur-sm">
+                      <div className="font-medium text-white">Sign In</div>
+                      <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900/95"></div>
+                    </div>
+                  </button>
+                </SafeSignInButton>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-200 truncate">
-                  John Doe
-                </p>
-                <p className="text-xs text-slate-400 truncate font-medium">
-                  john@example.com
-                </p>
+            ) : (
+              <div className="space-y-2">
+                <SafeSignInButton mode="modal">
+                  <button className="w-full rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 text-sm font-medium transition-all duration-200">
+                    Sign In
+                  </button>
+                </SafeSignInButton>
+                <SafeSignUpButton mode="modal">
+                  <button className="w-full rounded-lg border border-slate-600 hover:border-emerald-500 text-slate-300 hover:text-emerald-400 px-4 py-2 text-sm font-medium transition-all duration-200">
+                    Sign Up
+                  </button>
+                </SafeSignUpButton>
               </div>
-            </div>
-
-            {/* Quick Links */}
-            <div className="space-y-1 mt-4">
-              <button
-                onClick={() => onNavigate("settings")}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-medium text-slate-300 hover:text-emerald-300 hover:bg-slate-800/60 rounded-xl transition-all duration-200 hover:scale-[1.01]"
-              >
-                <FiSettings size={16} className="flex-shrink-0" />
-                <span>Settings</span>
-              </button>
-              <button
-                onClick={() => onNavigate("help")}
-                className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-medium text-slate-300 hover:text-emerald-300 hover:bg-slate-800/60 rounded-xl transition-all duration-200 hover:scale-[1.01]"
-              >
-                <FiHelpCircle size={16} className="flex-shrink-0" />
-                <span>Help & Support</span>
-              </button>
-              <button className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-medium text-slate-300 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all duration-200 hover:scale-[1.01] border border-transparent hover:border-red-500/20">
-                <FiLogOut size={16} className="flex-shrink-0" />
-                <span>Sign Out</span>
-              </button>
-            </div>
-          </>
-        ) : (
-          /* Collapsed Account Section */
-          <div className="flex flex-col items-center space-y-3">
-            <button
-              className="group relative w-full p-4 rounded-xl bg-slate-900/60 hover:bg-slate-800/60 transition-all duration-200 flex items-center justify-center border border-slate-800/30 hover:border-slate-700/50 hover:scale-105"
-              title="Account Menu"
-            >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-white">
-                <FiUser size={16} />
-              </div>
-              {/* Enhanced Tooltip */}
-              <div className="absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 rounded-lg bg-slate-900 border border-slate-700 px-4 py-3 text-sm text-slate-200 opacity-0 shadow-xl transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-1 backdrop-blur-sm min-w-48">
-                <div className="font-semibold text-emerald-300 mb-2">Account Menu</div>
-                <div className="space-y-1 text-xs">
-                  <div className="text-slate-300">John Doe</div>
-                  <div className="text-slate-400">john@example.com</div>
-                </div>
-                <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900"></div>
-              </div>
-            </button>
+            )}
           </div>
-        )}
+        </SafeSignedOut>
+
+        <SafeSignedIn>
+          <div className="relative">
+            {actuallyCollapsed ? (
+              <div className="flex justify-center">
+                <SafeUserButton
+                  appearance={{
+                    elements: {
+                      avatarBox: "w-8 h-8",
+                      userButtonPopoverCard:
+                        "bg-slate-900/95 border border-slate-700/50 backdrop-blur-sm",
+                      userButtonPopoverActions: "bg-slate-900/95",
+                      userButtonPopoverActionButton:
+                        "text-slate-300 hover:text-emerald-400 hover:bg-emerald-500/10",
+                      userButtonPopoverActionButtonText: "text-sm",
+                      userButtonPopoverFooter: "hidden",
+                    },
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 p-3 bg-slate-800/30 rounded-lg">
+                <SafeUserButton
+                  appearance={{
+                    elements: {
+                      avatarBox: "w-8 h-8",
+                      userButtonPopoverCard:
+                        "bg-slate-900/95 border border-slate-700/50 backdrop-blur-sm",
+                      userButtonPopoverActions: "bg-slate-900/95",
+                      userButtonPopoverActionButton:
+                        "text-slate-300 hover:text-emerald-400 hover:bg-emerald-500/10",
+                      userButtonPopoverActionButtonText: "text-sm",
+                      userButtonPopoverFooter: "hidden",
+                    },
+                  }}
+                />
+                <AuthenticatedUserInfo actuallyCollapsed={actuallyCollapsed} />
+              </div>
+            )}
+          </div>
+        </SafeSignedIn>
       </div>
     </aside>
   );

@@ -11,11 +11,19 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import NoveltyAssessment from "./NoveltyAssessment";
 import CompetitiveIntelligence from "./CompetitiveIntelligence";
 import CommercializationOpportunities from "./CommercializationOpportunities";
 import StrategicInsights from "./StrategicInsights";
-import { DocumentUpload } from "./DocumentUpload";
+import ProcessingPipeline from "./ProcessingPipeline";
+import UserPersonaSelector from "./UserPersonaSelector";
+import InsightsDashboard from "./InsightsDashboard";
+import ErrorBoundary from "./ErrorBoundary";
+import LoadingSpinner, { SkeletonCard, SkeletonChart } from "./LoadingSpinner";
+import { AccessibilityProvider } from "./AccessibilityProvider";
+
 import {
   BarChart3,
   Network,
@@ -31,6 +39,42 @@ import {
   RefreshCw,
   ExternalLink,
   Upload,
+  FileText,
+  Search,
+  Cpu,
+  Database,
+  Activity,
+  Download,
+  Share2,
+  Settings,
+  Eye,
+  Code,
+  Timer,
+  Layers,
+  ArrowRight,
+  Play,
+  Pause,
+  RotateCcw,
+  Info,
+  Users,
+  Building,
+  Globe,
+  DollarSign,
+  TrendingDown,
+  Shield,
+  Lightbulb,
+  BookOpen,
+  Calendar,
+  MapPin,
+  Phone,
+  Mail,
+  Link,
+  Filter,
+  SortAsc,
+  MoreHorizontal,
+  Maximize2,
+  Minimize2,
+  WifiOff,
 } from "lucide-react";
 
 interface InsightsIntegratedProps {
@@ -58,9 +102,35 @@ interface InsightsSummary {
 interface ProcessingStage {
   id: string;
   name: string;
+  description: string;
   status: "pending" | "processing" | "completed" | "error";
   progress: number;
+  duration?: number;
+  startTime?: number;
+  endTime?: number;
   result?: any;
+  apiCalls?: number;
+  tokensUsed?: number;
+  errorMessage?: string;
+}
+
+interface UserPersona {
+  id: string;
+  name: string;
+  role: string;
+  preferences: {
+    showTechnicalDetails: boolean;
+    showProcessingMetrics: boolean;
+    preferredView: 'overview' | 'detailed' | 'technical';
+  };
+}
+
+interface ProcessingMetrics {
+  totalDuration: number;
+  apiCalls: number;
+  tokensUsed: number;
+  successRate: number;
+  averageResponseTime: number;
 }
 
 interface RealTimeInsights {
@@ -91,6 +161,30 @@ const InsightsIntegrated: React.FC<InsightsIntegratedProps> = ({
   const [processingErrors, setProcessingErrors] = useState<string[]>([]);
   const [retryCount, setRetryCount] = useState(0);
   const [maxRetries] = useState(3);
+  const [userPersona, setUserPersona] = useState<UserPersona>({
+    id: 'researcher',
+    name: 'Researcher',
+    role: 'Research Scientist',
+    preferences: {
+      showTechnicalDetails: false,
+      showProcessingMetrics: false,
+      preferredView: 'overview'
+    }
+  });
+  const [processingMetrics, setProcessingMetrics] = useState<ProcessingMetrics>({
+    totalDuration: 0,
+    apiCalls: 0,
+    tokensUsed: 0,
+    successRate: 100,
+    averageResponseTime: 0
+  });
+  const [showDeveloperMode, setShowDeveloperMode] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [exportFormat, setExportFormat] = useState<'pdf' | 'excel' | 'json'>('pdf');
+  const [showDeveloperTools, setShowDeveloperTools] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline'>('online');
+  const [retryAttempts, setRetryAttempts] = useState(0);
+  const [lastError, setLastError] = useState<Error | null>(null);
 
   useEffect(() => {
     if (analysisId) {
@@ -101,20 +195,69 @@ const InsightsIntegrated: React.FC<InsightsIntegratedProps> = ({
     }
   }, [analysisId]);
 
-  const fetchSummaryData = async () => {
+  // Monitor network status
+  useEffect(() => {
+    const handleOnline = () => {
+      setConnectionStatus('online');
+      if (error && error.includes('Network error')) {
+        // Retry fetching data when connection is restored
+        fetchSummaryData();
+      }
+    };
+    
+    const handleOffline = () => {
+      setConnectionStatus('offline');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [error]);
+
+  const fetchSummaryData = async (retryCount = 0) => {
     if (!analysisId) return;
 
     try {
       setLoading(true);
+      setError(null);
+      setLastError(null);
+      
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
       const response = await fetch(
-        `/api/analysis/${analysisId}/track1/comprehensive`
+        `/api/analysis/${analysisId}/track1/comprehensive`,
+        {
+          signal: controller.signal,
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+          },
+        }
       );
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(
+        const error = new Error(
           `Failed to fetch insights summary (${response.status}): ${errorText}`
         );
+        
+        // Check if it's a network error that might benefit from retry
+        if (response.status >= 500 && retryCount < maxRetries) {
+          console.warn(`Server error, retrying... (${retryCount + 1}/${maxRetries})`);
+          setRetryAttempts(retryCount + 1);
+          setTimeout(() => fetchSummaryData(retryCount + 1), Math.pow(2, retryCount) * 1000);
+          return;
+        }
+        
+        throw error;
       }
 
       const data = await response.json();
@@ -140,10 +283,25 @@ const InsightsIntegrated: React.FC<InsightsIntegratedProps> = ({
 
       setSummary(summaryData);
       setError(null);
+      setRetryAttempts(0);
+      setConnectionStatus('online');
     } catch (err) {
       console.error("Error fetching insights summary:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to load insights summary";
+      setLastError(err instanceof Error ? err : new Error('Unknown error'));
+      
+      let errorMessage = "Failed to load insights summary";
+      
+      if (err instanceof Error) {
+        if (err.name === 'AbortError') {
+          errorMessage = "Request timed out. Please check your connection and try again.";
+        } else if (err.message.includes('Failed to fetch')) {
+          errorMessage = "Network error. Please check your internet connection.";
+          setConnectionStatus('offline');
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
       setError(errorMessage);
 
       // Set fallback summary data so the UI doesn't break
@@ -171,44 +329,65 @@ const InsightsIntegrated: React.FC<InsightsIntegratedProps> = ({
       {
         id: "extract",
         name: "Document Processing",
+        description: "Extracting and parsing document content",
         status: "pending",
         progress: 0,
+        apiCalls: 0,
+        tokensUsed: 0,
       },
       {
         id: "logic_mill",
         name: "Patent & Publication Search",
+        description: "Searching 70M+ patents and publications using Logic Mill API",
         status: "pending",
         progress: 0,
+        apiCalls: 0,
+        tokensUsed: 0,
       },
       {
         id: "claude",
         name: "AI Strategic Analysis",
+        description: "Generating strategic insights using Claude AI",
         status: "pending",
         progress: 0,
+        apiCalls: 0,
+        tokensUsed: 0,
       },
       {
         id: "novelty",
         name: "Novelty Assessment",
+        description: "Analyzing technology novelty and prior art landscape",
         status: "pending",
         progress: 0,
+        apiCalls: 0,
+        tokensUsed: 0,
       },
       {
         id: "competitive",
         name: "Competitive Intelligence",
+        description: "Mapping competitive landscape and market position",
         status: "pending",
         progress: 0,
+        apiCalls: 0,
+        tokensUsed: 0,
       },
       {
         id: "commercialization",
         name: "Commercialization Analysis",
+        description: "Identifying licensing opportunities and market readiness",
         status: "pending",
         progress: 0,
+        apiCalls: 0,
+        tokensUsed: 0,
       },
       {
         id: "strategic",
         name: "Strategic Insights",
+        description: "Generating AI-powered recommendations and risk assessment",
         status: "pending",
         progress: 0,
+        apiCalls: 0,
+        tokensUsed: 0,
       },
     ];
     setProcessingStages(stages);
@@ -220,10 +399,64 @@ const InsightsIntegrated: React.FC<InsightsIntegratedProps> = ({
     updates: Partial<ProcessingStage>
   ) => {
     setProcessingStages((prev) =>
-      prev.map((stage) =>
-        stage.id === stageId ? { ...stage, ...updates } : stage
-      )
+      prev.map((stage) => {
+        if (stage.id === stageId) {
+          const updatedStage = { ...stage, ...updates };
+          
+          // Track timing
+          if (updates.status === 'processing' && !stage.startTime) {
+            updatedStage.startTime = Date.now();
+          }
+          if (updates.status === 'completed' && stage.startTime) {
+            updatedStage.endTime = Date.now();
+            updatedStage.duration = updatedStage.endTime - stage.startTime;
+          }
+          
+          return updatedStage;
+        }
+        return stage;
+      })
     );
+    
+    // Update processing metrics
+    if (updates.status === 'completed') {
+      setProcessingMetrics(prev => ({
+        ...prev,
+        apiCalls: prev.apiCalls + (updates.apiCalls || 0),
+        tokensUsed: prev.tokensUsed + (updates.tokensUsed || 0)
+      }));
+    }
+  };
+
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sectionId)) {
+        newSet.delete(sectionId);
+      } else {
+        newSet.add(sectionId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleExport = async (format: string, data?: any) => {
+    // Implementation for export functionality
+    console.log(`Exporting insights in ${format} format for analysis ${analysisId}`, data);
+  };
+
+  const handleShare = async () => {
+    // Implementation for sharing functionality
+    const shareUrl = `${window.location.origin}/insights?analysisId=${analysisId}`;
+    if (navigator.share) {
+      await navigator.share({
+        title: 'CORE Tech Transfer Insights',
+        text: 'Check out these technology commercialization insights',
+        url: shareUrl
+      });
+    } else {
+      await navigator.clipboard.writeText(shareUrl);
+    }
   };
 
   const simulateRealTimeProcessing = async (analysisId: string) => {
@@ -533,126 +766,67 @@ const InsightsIntegrated: React.FC<InsightsIntegratedProps> = ({
 
   if (!analysisId) {
     return (
-      <div className={`space-y-6 ${className}`}>
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-200 mb-2">
-              Track 1: Tech Transfer Insights
-            </h2>
-            <p className="text-slate-400">
-              Upload a research document to get comprehensive commercialization
-              insights
-            </p>
-          </div>
-        </div>
+      <AccessibilityProvider>
+        <ErrorBoundary>
+          <div className={`space-y-6 ${className}`} role="main" aria-label="Tech Transfer Insights">
+            {/* Skip Link for Accessibility */}
+            <a href="#main-content" className="skip-link sr-only focus:not-sr-only">
+              Skip to main content
+            </a>
+            
+            {/* Connection Status */}
+            {connectionStatus === 'offline' && (
+              <Alert className="border-orange-200 bg-orange-50">
+                <WifiOff className="h-4 w-4" />
+                <AlertDescription>
+                  You&apos;re currently offline. Some features may not be available.
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {/* Header */}
+            <div className="flex items-center justify-between" id="main-content">
+              <div>
+                <h1 className="text-2xl font-bold text-slate-200 mb-2">
+                  Track 1: Tech Transfer Insights
+                </h1>
+                <p className="text-slate-400">
+                  Upload a research document to get comprehensive commercialization insights
+                </p>
+              </div>
+            </div>
 
         {/* Document Upload Section */}
         <div className="space-y-6">
-          <DocumentUpload
-            onUpload={handleRealTimeDocumentUpload}
-            isUploading={isUploading || isProcessingRealTime}
-            className=""
+          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-8 text-center">
+            <Upload className="mx-auto mb-4 text-slate-400" size={48} />
+            <h3 className="text-lg font-medium text-white mb-2">Upload Research Document</h3>
+            <p className="text-slate-400 mb-4">Document upload functionality will be available soon.</p>
+            <button 
+              disabled 
+              className="px-4 py-2 bg-slate-700 text-slate-400 rounded-lg cursor-not-allowed"
+            >
+              Upload Document
+            </button>
+          </div>
+
+          {/* User Persona Selector */}
+          <UserPersonaSelector
+            currentPersona={userPersona}
+            onPersonaChange={setUserPersona}
+            className="mb-6"
           />
 
           {/* Real-Time Processing Display */}
           {isProcessingRealTime && (
-            <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="animate-spin h-5 w-5 border-2 border-emerald-500 border-t-transparent rounded-full"></div>
-                <h3 className="text-lg font-semibold text-slate-200">
-                  Processing Real-Time Insights
-                </h3>
-              </div>
-
-              <div className="space-y-4">
-                {processingStages.map((stage) => {
-                  const getStageIcon = () => {
-                    switch (stage.status) {
-                      case "completed":
-                        return (
-                          <CheckCircle className="text-emerald-400" size={16} />
-                        );
-                      case "processing":
-                        return (
-                          <div className="animate-spin h-4 w-4 border-2 border-emerald-500 border-t-transparent rounded-full"></div>
-                        );
-                      case "error":
-                        return (
-                          <AlertTriangle className="text-red-400" size={16} />
-                        );
-                      default:
-                        return <Clock className="text-slate-500" size={16} />;
-                    }
-                  };
-
-                  return (
-                    <div
-                      key={stage.id}
-                      className="flex items-center gap-3 p-3 bg-slate-800/30 rounded-lg"
-                    >
-                      {getStageIcon()}
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <span
-                            className={`text-sm font-medium ${
-                              stage.status === "completed"
-                                ? "text-emerald-300"
-                                : stage.status === "processing"
-                                ? "text-blue-300"
-                                : stage.status === "error"
-                                ? "text-red-300"
-                                : "text-slate-400"
-                            }`}
-                          >
-                            {stage.name}
-                          </span>
-                          {stage.status === "processing" && (
-                            <span className="text-xs text-slate-400">
-                              {stage.progress}%
-                            </span>
-                          )}
-                        </div>
-                        {stage.status === "processing" && (
-                          <div className="w-full bg-slate-700 rounded-full h-1.5">
-                            <div
-                              className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300"
-                              style={{ width: `${stage.progress}%` }}
-                            ></div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Real-Time Insights Preview */}
-              {Object.keys(realTimeInsights).length > 0 && (
-                <div className="mt-6 pt-6 border-t border-slate-700">
-                  <h4 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
-                    <Zap className="text-emerald-400" size={14} />
-                    Live Insights
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {Object.entries(realTimeInsights).map(
-                      ([key, insight]: [string, any]) => (
-                        <div
-                          key={key}
-                          className="flex items-center gap-2 p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg"
-                        >
-                          <CheckCircle className="text-emerald-400" size={14} />
-                          <span className="text-xs text-emerald-300 capitalize">
-                            {key} Ready
-                          </span>
-                        </div>
-                      )
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+            <ProcessingPipeline
+              stages={processingStages}
+              isProcessing={isProcessingRealTime}
+              showTechnicalDetails={userPersona.preferences.showTechnicalDetails}
+              className="mb-6"
+            />
           )}
+
 
           {/* Available Insights Preview */}
           <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-6">
@@ -710,36 +884,105 @@ const InsightsIntegrated: React.FC<InsightsIntegratedProps> = ({
             </div>
           </div>
         </div>
+        
+        {/* Removed Accessibility Button and Developer Tools for cleaner UI */}
       </div>
+      </ErrorBoundary>
+      </AccessibilityProvider>
     );
   }
 
   if (loading) {
     return (
-      <div className={`space-y-6 ${className}`}>
-        {/* Header Skeleton */}
-        <div className="animate-pulse">
-          <div className="h-6 bg-slate-700 rounded w-1/3 mb-4"></div>
-          <div className="h-4 bg-slate-700 rounded w-2/3 mb-6"></div>
-        </div>
-
-        {/* Cards Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="animate-pulse">
-              <div className="bg-slate-800 rounded-lg p-4">
-                <div className="h-4 bg-slate-700 rounded w-3/4 mb-2"></div>
-                <div className="h-6 bg-slate-700 rounded w-1/2"></div>
-              </div>
+      <AccessibilityProvider>
+        <ErrorBoundary>
+          <div className={`space-y-6 ${className}`} role="main" aria-label="Loading insights" aria-busy="true">
+            {/* Loading Announcement for Screen Readers */}
+            <div className="sr-only" aria-live="polite">
+              Loading technology transfer insights. Please wait...
+              {retryAttempts > 0 && ` Retry attempt ${retryAttempts} of ${maxRetries}.`}
             </div>
-          ))}
-        </div>
-      </div>
+            
+            {/* Connection Status */}
+            {connectionStatus === 'offline' && (
+              <Alert className="border-orange-200 bg-orange-50">
+                <WifiOff className="h-4 w-4" />
+                <AlertDescription>
+                  You&apos;re currently offline. Loading cached data if available.
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {/* Loading Spinner with Stage Information */}
+            <div className="flex flex-col items-center justify-center py-12">
+              <LoadingSpinner 
+                size="lg" 
+                variant="themed" 
+                stage={isProcessingRealTime ? 'analyzing' : 'processing'}
+                text={retryAttempts > 0 ? `Retrying... (${retryAttempts}/${maxRetries})` : undefined}
+              />
+              
+              {/* Progress Information */}
+              {processingStages.length > 0 && (
+                <div className="mt-6 w-full max-w-md">
+                  <div className="text-sm text-slate-400 mb-2 text-center">
+                    Processing Stage: {processingStages.find(s => s.status === 'processing')?.name || 'Initializing'}
+                  </div>
+                  <div className="w-full bg-slate-700 rounded-full h-2">
+                    <div 
+                      className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
+                      style={{ 
+                        width: `${(processingStages.filter(s => s.status === 'completed').length / processingStages.length) * 100}%` 
+                      }}
+                      role="progressbar"
+                      aria-valuenow={(processingStages.filter(s => s.status === 'completed').length / processingStages.length) * 100}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label="Processing progress"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Header Skeleton */}
+            <SkeletonCard className="h-20" />
+
+            {/* Cards Skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <SkeletonCard key={i} className="h-24" />
+              ))}
+            </div>
+            
+            {/* Chart Skeleton */}
+            <SkeletonChart className="h-64" />
+            
+            {/* Removed Accessibility Button and Developer Tools for cleaner UI */}
+          </div>
+        </ErrorBoundary>
+      </AccessibilityProvider>
     );
   }
 
   return (
-    <div className={`space-y-6 ${className}`}>
+    <AccessibilityProvider>
+      <ErrorBoundary>
+        <div className={`space-y-6 ${className}`} role="main" aria-label="Technology Transfer Insights">
+          {/* Skip Link for Accessibility */}
+          <a href="#main-content" className="skip-link sr-only focus:not-sr-only">
+            Skip to main content
+          </a>
+          
+          {/* Connection Status */}
+          {connectionStatus === 'offline' && (
+            <Alert className="border-orange-200 bg-orange-50">
+              <WifiOff className="h-4 w-4" />
+              <AlertDescription>
+                You&apos;re currently offline. Some features may not be available.
+              </AlertDescription>
+            </Alert>
+          )}
       {/* Error Alerts */}
       {error && (
         <Alert className="border-red-500/50 bg-red-500/10">
@@ -786,123 +1029,93 @@ const InsightsIntegrated: React.FC<InsightsIntegratedProps> = ({
         </Alert>
       )}
 
-      {/* Header with Refresh */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-200 mb-2">
-            Track 1: Tech Transfer Insights
-          </h2>
-          <p className="text-slate-400">
-            Comprehensive analysis for technology commercialization
-          </p>
-        </div>
-        <div className="flex items-center space-x-4">
-          {analysisId && (
-            <Badge
-              variant="outline"
-              className="bg-emerald-500/10 text-emerald-300 border-emerald-500/30 px-3 py-1"
-            >
-              ID: {analysisId.slice(0, 8)}...
-            </Badge>
-          )}
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="inline-flex items-center px-3 py-2 border border-slate-600 shadow-sm text-sm leading-4 font-medium rounded-md text-slate-300 bg-slate-800 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 transition-colors"
-          >
-            <RefreshCw
-              className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
-            />
-            Refresh
-          </button>
-        </div>
-      </div>
+      {/* User Persona Selector */}
+      <UserPersonaSelector
+        currentPersona={userPersona}
+        onPersonaChange={setUserPersona}
+        className="mb-6"
+      />
 
-      {/* Summary Cards */}
+      {/* Enhanced Dashboard */}
       {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 transition-colors">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2 text-sm font-medium text-slate-400">
-                <BarChart3 className="h-4 w-4" />
-                <span>Novelty Score</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2">
-                {getScoreIcon(summary.novelty_score)}
-                <span
-                  className={`text-2xl font-bold ${getScoreColor(
-                    summary.novelty_score
-                  )}`}
-                >
-                  {(summary.novelty_score * 100).toFixed(0)}%
-                </span>
+        <InsightsDashboard
+          summary={summary}
+          analysisId={analysisId}
+          onTabChange={setActiveTab}
+          onExport={handleExport}
+          onShare={handleShare}
+          showTechnicalDetails={userPersona.preferences.showTechnicalDetails}
+          className="mb-6"
+        />
+      )}
+
+      {/* Processing Pipeline */}
+      {(isProcessingRealTime || processingStages.length > 0) && (
+        <ProcessingPipeline
+          stages={processingStages}
+          isProcessing={isProcessingRealTime}
+          showTechnicalDetails={userPersona.preferences.showTechnicalDetails}
+          className="mb-6"
+        />
+      )}
+
+      {/* Developer Mode Toggle */}
+      {userPersona.id === 'developer' && (
+        <Card className="bg-slate-800/50 border-slate-700 mb-6">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Code className="text-emerald-400" size={16} />
+                <span className="text-sm font-medium text-slate-300">Developer Mode</span>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 transition-colors">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2 text-sm font-medium text-slate-400">
-                <Network className="h-4 w-4" />
-                <span>Market Competition</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Badge
-                className={`${getIntensityColor(
-                  summary.competitive_intensity
-                )} border-0 text-sm font-medium px-3 py-1`}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDeveloperMode(!showDeveloperMode)}
+                className={`border-slate-600 text-slate-300 hover:bg-slate-700 ${
+                  showDeveloperMode ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : ''
+                }`}
               >
-                {summary.competitive_intensity}
-              </Badge>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 transition-colors">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2 text-sm font-medium text-slate-400">
-                <Target className="h-4 w-4" />
-                <span>Market Readiness</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2">
-                {getScoreIcon(summary.market_readiness)}
-                <span
-                  className={`text-2xl font-bold ${getScoreColor(
-                    summary.market_readiness
-                  )}`}
-                >
-                  {(summary.market_readiness * 100).toFixed(0)}%
-                </span>
+                {showDeveloperMode ? 'Hide' : 'Show'} Technical Details
+              </Button>
+            </div>
+            
+            {showDeveloperMode && (
+              <div className="mt-4 pt-4 border-t border-slate-700">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                  <div>
+                    <div className="text-lg font-semibold text-emerald-300">
+                      {processingMetrics.apiCalls}
+                    </div>
+                    <div className="text-xs text-slate-400">Total API Calls</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-semibold text-blue-300">
+                      {processingMetrics.tokensUsed.toLocaleString()}
+                    </div>
+                    <div className="text-xs text-slate-400">Tokens Used</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-semibold text-purple-300">
+                      {processingMetrics.successRate.toFixed(1)}%
+                    </div>
+                    <div className="text-xs text-slate-400">Success Rate</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-semibold text-yellow-300">
+                      {processingMetrics.averageResponseTime.toFixed(0)}ms
+                    </div>
+                    <div className="text-xs text-slate-400">Avg Response</div>
+                  </div>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 transition-colors">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2 text-sm font-medium text-slate-400">
-                <AlertTriangle className="h-4 w-4" />
-                <span>Overall Risk</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Badge
-                className={`${getRiskColor(
-                  summary.overall_risk
-                )} border-0 text-sm font-medium px-3 py-1`}
-              >
-                {summary.overall_risk}
-              </Badge>
-            </CardContent>
-          </Card>
-        </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Main Content Tabs */}
-      <div className="bg-slate-900/50 border border-slate-800 rounded-lg">
+      <div id="main-content" className="bg-slate-900/50 border border-slate-800 rounded-lg">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4 bg-slate-800/50 p-1 rounded-t-lg border-b border-slate-700">
             <TabsTrigger
@@ -941,24 +1154,48 @@ const InsightsIntegrated: React.FC<InsightsIntegratedProps> = ({
 
           <div className="p-6">
             <TabsContent value="novelty" className="mt-0">
-              <NoveltyAssessment analysisId={analysisId} />
+              <NoveltyAssessment 
+                analysisId={analysisId} 
+                showTechnicalDetails={userPersona.preferences.showTechnicalDetails}
+                onExport={handleExport}
+                onShare={handleShare}
+              />
             </TabsContent>
 
             <TabsContent value="competitive" className="mt-0">
-              <CompetitiveIntelligence analysisId={analysisId} />
+              <CompetitiveIntelligence 
+                analysisId={analysisId} 
+                showTechnicalDetails={userPersona.preferences.showTechnicalDetails}
+                onExport={handleExport}
+                onShare={handleShare}
+              />
             </TabsContent>
 
             <TabsContent value="commercialization" className="mt-0">
-              <CommercializationOpportunities analysisId={analysisId} />
+              <CommercializationOpportunities 
+                analysisId={analysisId} 
+                showTechnicalDetails={userPersona.preferences.showTechnicalDetails}
+                onExport={handleExport}
+                onShare={handleShare}
+              />
             </TabsContent>
 
             <TabsContent value="strategic" className="mt-0">
-              <StrategicInsights analysisId={analysisId} />
+              <StrategicInsights 
+                analysisId={analysisId} 
+                showTechnicalDetails={userPersona.preferences.showTechnicalDetails}
+                onExport={handleExport}
+                onShare={handleShare}
+              />
             </TabsContent>
           </div>
         </Tabs>
       </div>
+      
+      {/* Removed Accessibility Button and Developer Tools for cleaner UI */}
     </div>
+    </ErrorBoundary>
+    </AccessibilityProvider>
   );
 };
 

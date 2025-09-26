@@ -14,6 +14,9 @@ from ..models.analysis import AnalysisRecord
 from ..services.logic_mill import LogicMillClient, logic_mill_available, SimilarityRequest
 from ..services.tech_transfer import run_tech_transfer_analysis
 from ..services.claude_service import claude_service
+from ..services.similarity_search_service import similarity_search_service
+from ..services.claude_extraction_service import claude_extraction_service
+from ..services.enhanced_logic_mill_service import create_enhanced_logic_mill_service
 
 router = APIRouter()
 
@@ -26,9 +29,27 @@ class IngestRequest(BaseModel):
     body: str | None = None
 
 
+class EnhancedIngestRequest(BaseModel):
+    content: str
+    document_type: str = "research_paper"
+    use_claude_extraction: bool = True
+    search_indices: List[str] = ["patents", "publications"]
+    max_results: int = 25
+
+
 class IngestResponse(BaseModel):
     analysis_id: str
     status: str
+
+
+class EnhancedIngestResponse(BaseModel):
+    analysis_id: str
+    status: str
+    extracted_data: Dict[str, Any]
+    similarity_results: List[Dict[str, Any]]
+    optimization_metrics: Dict[str, Any]
+    validation_results: Dict[str, Any]
+    recommendations: List[str]
 
 
 class ChatMessage(BaseModel):
@@ -118,6 +139,152 @@ async def ingest(
     )
     ANALYSIS_DB[analysis_id] = record
     return IngestResponse(analysis_id=analysis_id, status="completed")
+
+
+@router.post("/ingest/enhanced", response_model=EnhancedIngestResponse)
+async def enhanced_ingest(
+    payload: EnhancedIngestRequest,
+    client: LogicMillClient | None = Depends(get_logic_mill_client),
+) -> EnhancedIngestResponse:
+    """Enhanced document ingestion with Claude-powered extraction and optimized similarity search"""
+    
+    analysis_id = str(uuid4())
+    
+    try:
+        # Create enhanced Logic Mill service
+        enhanced_service = create_enhanced_logic_mill_service(client)
+        
+        # Perform enhanced analysis with Claude extraction
+        extracted_data, similarity_results, optimization_metrics = await enhanced_service.analyze_document_with_enhanced_search(
+            content=payload.content,
+            document_type=payload.document_type,
+            search_indices=payload.search_indices,
+            max_results=payload.max_results
+        )
+        
+        # Validate extraction quality
+        extraction_validation = await claude_extraction_service.validate_extraction_quality(extracted_data)
+        
+        # Validate search results
+        search_validation = await enhanced_service.validate_search_results(similarity_results, extracted_data)
+        
+        # Get recommendations
+        recommendations = enhanced_service.get_search_recommendations(
+            extracted_data, optimization_metrics, search_validation
+        )
+        
+        # Create traditional tech transfer analysis for compatibility
+        tech_transfer = run_tech_transfer_analysis(
+            title=extracted_data.title,
+            abstract=extracted_data.abstract,
+            client=client,
+        )
+        
+        # Store analysis record
+        record = AnalysisRecord(
+            analysis_id=analysis_id,
+            title=extracted_data.title,
+            abstract=extracted_data.abstract,
+            tech_transfer=tech_transfer,
+        )
+        ANALYSIS_DB[analysis_id] = record
+        
+        # Convert results to serializable format
+        serialized_results = []
+        for result in similarity_results:
+            serialized_results.append({
+                'id': result.id,
+                'score': result.score,
+                'index': result.index,
+                'title': result.title,
+                'url': result.url,
+                'summary': result.summary,
+                'relevance_factors': result.relevance_factors,
+                'extraction_confidence': result.extraction_confidence,
+                'match_type': result.match_type
+            })
+        
+        # Prepare extracted data for response
+        extracted_data_dict = {
+            'title': extracted_data.title,
+            'abstract': extracted_data.abstract,
+            'key_technologies': extracted_data.key_technologies,
+            'research_domain': extracted_data.research_domain,
+            'methodology': extracted_data.methodology,
+            'findings': extracted_data.findings,
+            'applications': extracted_data.applications,
+            'technical_keywords': extracted_data.technical_keywords,
+            'innovation_aspects': extracted_data.innovation_aspects,
+            'commercial_potential': extracted_data.commercial_potential,
+            'technology_classification': extracted_data.technology_classification,
+            'innovation_level': extracted_data.innovation_level,
+            'commercial_readiness': extracted_data.commercial_readiness,
+            'patent_keywords': extracted_data.patent_keywords,
+            'market_applications': extracted_data.market_applications,
+            'technical_specifications': extracted_data.technical_specifications,
+            'confidence_score': extracted_data.confidence_score,
+            'extraction_quality': extracted_data.extraction_quality,
+            'extraction_logs': extracted_data.extraction_logs
+        }
+        
+        # Prepare optimization metrics
+        metrics_dict = {
+            'total_search_terms': optimization_metrics.total_search_terms,
+            'weighted_terms_used': optimization_metrics.weighted_terms_used,
+            'confidence_boost_applied': optimization_metrics.confidence_boost_applied,
+            'search_strategy': optimization_metrics.search_strategy,
+            'processing_time': optimization_metrics.processing_time
+        }
+        
+        # Combine validation results
+        combined_validation = {
+            'extraction_validation': extraction_validation,
+            'search_validation': search_validation
+        }
+        
+        logger.info(f"Enhanced analysis completed for {analysis_id} with {len(similarity_results)} results")
+        
+        return EnhancedIngestResponse(
+            analysis_id=analysis_id,
+            status="completed",
+            extracted_data=extracted_data_dict,
+            similarity_results=serialized_results,
+            optimization_metrics=metrics_dict,
+            validation_results=combined_validation,
+            recommendations=recommendations
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in enhanced ingest: {e}")
+        
+        # Fallback to basic analysis
+        lines = payload.content.split('\n')
+        title = lines[0] if lines else "Untitled Document"
+        abstract = "\n".join(lines[1:3]) if len(lines) > 1 else "No abstract available"
+        
+        tech_transfer = run_tech_transfer_analysis(
+            title=title,
+            abstract=abstract,
+            client=client,
+        )
+        
+        record = AnalysisRecord(
+            analysis_id=analysis_id,
+            title=title,
+            abstract=abstract,
+            tech_transfer=tech_transfer,
+        )
+        ANALYSIS_DB[analysis_id] = record
+        
+        return EnhancedIngestResponse(
+            analysis_id=analysis_id,
+            status="completed_with_fallback",
+            extracted_data={'title': title, 'abstract': abstract, 'error': str(e)},
+            similarity_results=[],
+            optimization_metrics={'error': str(e)},
+            validation_results={'error': str(e)},
+            recommendations=["Enhanced extraction failed - manual review recommended"]
+        )
 
 
 def _get_record_or_404(analysis_id: str) -> AnalysisRecord:
@@ -463,4 +630,111 @@ async def chat_with_claude(payload: ChatRequest) -> ChatResponse:
 async def chat_health_check() -> Dict[str, Any]:
     """Health check endpoint for Claude API"""
     return await claude_service.health_check()
+
+
+# Similarity Search Endpoints
+class SimilaritySearchRequest(BaseModel):
+    title: str
+    abstract: str
+    amount: int = 25
+    indices: List[str] = ["patents", "publications"]
+
+
+class SimilaritySearchResponse(BaseModel):
+    success: bool
+    error: str | None = None
+    results: List[Dict[str, Any]] = []
+    total_results: int = 0
+    query_info: Dict[str, Any] = {}
+
+
+@router.post("/similarity-search", response_model=SimilaritySearchResponse)
+async def search_similar_documents(payload: SimilaritySearchRequest) -> SimilaritySearchResponse:
+    """Search for similar documents using Logic Mill API with exact implementation from example"""
+    try:
+        # Perform similarity search using the service
+        search_results = await similarity_search_service.search_similar_documents(
+            title=payload.title,
+            abstract=payload.abstract,
+            amount=payload.amount,
+            indices=payload.indices
+        )
+        
+        return SimilaritySearchResponse(
+            success=search_results["success"],
+            error=search_results["error"],
+            results=search_results["results"],
+            total_results=search_results.get("total_results", 0),
+            query_info=search_results.get("query_info", {})
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in similarity search endpoint: {e}")
+        return SimilaritySearchResponse(
+            success=False,
+            error=f"Internal server error: {str(e)}",
+            results=[],
+            total_results=0,
+            query_info={}
+        )
+
+
+@router.post("/extract-and-search")
+async def extract_and_search_documents(payload: IngestRequest) -> Dict[str, Any]:
+    """Extract document content using Claude AI and perform similarity search"""
+    try:
+        # Use Claude AI to enhance/validate the extracted content
+        enhanced_content = await claude_service.send_message(
+            message=f"Please analyze and improve this document content for research similarity search. Extract the most important technical details, key innovations, and research contributions.\n\nTitle: {payload.title}\n\nAbstract: {payload.abstract}\n\nBody: {payload.body or 'No additional content'}",
+            context="You are helping to prepare document content for academic and patent similarity search. Focus on technical accuracy and key research contributions."
+        )
+        
+        # Use the original or enhanced content for similarity search
+        title = payload.title
+        abstract = payload.abstract
+        
+        # If Claude enhancement was successful, use enhanced abstract
+        if enhanced_content.get("success") and enhanced_content.get("response"):
+            # Extract enhanced abstract from Claude response
+            claude_response = enhanced_content["response"]
+            if "Enhanced Abstract:" in claude_response:
+                enhanced_abstract = claude_response.split("Enhanced Abstract:")[1].strip()
+                if enhanced_abstract and len(enhanced_abstract) > 50:  # Use enhanced if substantial
+                    abstract = enhanced_abstract
+        
+        # Perform similarity search
+        search_results = await similarity_search_service.search_similar_documents(
+            title=title,
+            abstract=abstract,
+            amount=25,
+            indices=["patents", "publications"]
+        )
+        
+        # Format results for display
+        formatted_results = similarity_search_service.format_results_for_display(search_results)
+        
+        return {
+            "success": search_results["success"],
+            "error": search_results["error"],
+            "extraction_info": {
+                "original_title": payload.title,
+                "original_abstract_words": len(payload.abstract.split()),
+                "used_claude_enhancement": enhanced_content.get("success", False),
+                "final_abstract_words": len(abstract.split())
+            },
+            "similarity_results": formatted_results,
+            "total_results": len(formatted_results),
+            "query_info": search_results.get("query_info", {})
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in extract and search endpoint: {e}")
+        return {
+            "success": False,
+            "error": f"Internal server error: {str(e)}",
+            "extraction_info": {},
+            "similarity_results": [],
+            "total_results": 0,
+            "query_info": {}
+        }
 

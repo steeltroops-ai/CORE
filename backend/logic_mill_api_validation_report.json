@@ -1,0 +1,210 @@
+{
+  "timestamp": 172432.9952575,
+  "extraction_analysis": {
+    "overall_quality": "high",
+    "technical_content_score": 0.7333333333333334,
+    "keyword_density": 0.8,
+    "domain_specificity": 0.88,
+    "recommendations": [
+      "Enhance abstract with quantitative data and technical details"
+    ]
+  },
+  "document_parts": [
+    {
+      "key": "title",
+      "value": "Advanced Neural Network Architectures for Real-Time Image Processing"
+    },
+    {
+      "key": "abstract",
+      "value": "This paper presents novel convolutional neural network architectures optimized for real-time image processing applications. Our approach combines attention mechanisms with efficient convolution operations to achieve 95% accuracy while maintaining sub-millisecond inference times on edge devices."
+    },
+    {
+      "key": "keywords",
+      "value": "neural networks, CNN, optimization, method, system, apparatus, inference, edge computing, real-time, image processing"
+    },
+    {
+      "key": "technical_specs",
+      "value": "Methodology: Hybrid architecture combining depthwise separable convolutions with channel attention modules. Findings: 95.2% accuracy on ImageNet with 2.1M parameters and 0.8ms inference time"
+    },
+    {
+      "key": "applications",
+      "value": "video surveillance, autonomous vehicles, mobile AR, quality control"
+    }
+  ],
+  "parts_validation": {
+    "is_valid": true,
+    "issues": [],
+    "recommendations": [],
+    "part_analysis": [
+      {
+        "index": 0,
+        "key": "title",
+        "value_length": 68,
+        "is_valid": true,
+        "issues": []
+      },
+      {
+        "index": 1,
+        "key": "abstract",
+        "value_length": 295,
+        "is_valid": true,
+        "issues": []
+      },
+      {
+        "index": 2,
+        "key": "keywords",
+        "value_length": 117,
+        "is_valid": true,
+        "issues": []
+      },
+      {
+        "index": 3,
+        "key": "technical_specs",
+        "value_length": 190,
+        "is_valid": true,
+        "issues": []
+      },
+      {
+        "index": 4,
+        "key": "applications",
+        "value_length": 67,
+        "is_valid": true,
+        "issues": []
+      }
+    ]
+  },
+  "query_validation": {
+    "is_valid": true,
+    "issues": [],
+    "parameter_analysis": {
+      "data": "present",
+      "model": "present"
+    }
+  },
+  "recommendations": [
+    "Enhance abstract with quantitative data and technical details"
+  ],
+  "overall_readiness": "ready",
+  "api_documentation": {
+    "endpoint": "https://api.logic-mill.net/api/v1/graphql/",
+    "authentication": {
+      "type": "Bearer Token",
+      "header": "Authorization: Bearer <token>"
+    },
+    "graphql_query": {
+      "operation": "encodeDocumentAndSimilaritySearch",
+      "query_structure": "\n                query embedDocumentAndSimilaritySearch(\n                    $data: [EncodeDocumentPart], \n                    $indices: [String], \n                    $amount: Int, \n                    $model: String!\n                ) {\n                    encodeDocumentAndSimilaritySearch(\n                        data: $data\n                        indices: $indices\n                        amount: $amount\n                        model: $model\n                    ) {\n                        id\n                        score\n                        index\n                        document {\n                            title\n                            url\n                            PatspecterEmbedding\n                        }\n                    }\n                }\n                "
+    },
+    "input_format": {
+      "data": {
+        "type": "[EncodeDocumentPart]",
+        "description": "Array of document parts with key-value structure",
+        "structure": {
+          "key": "string (part name: title, abstract, keywords, etc.)",
+          "value": "string (content for that part)"
+        },
+        "example": [
+          {
+            "key": "title",
+            "value": "Advanced Neural Networks"
+          },
+          {
+            "key": "abstract",
+            "value": "This paper presents..."
+          },
+          {
+            "key": "keywords",
+            "value": "neural networks, AI, machine learning"
+          }
+        ]
+      },
+      "indices": {
+        "type": "[String]",
+        "description": "Search indices to query",
+        "valid_values": [
+          "patents",
+          "publications"
+        ],
+        "default": [
+          "patents",
+          "publications"
+        ]
+      },
+      "amount": {
+        "type": "Int",
+        "description": "Number of results to return",
+        "default": 25,
+        "range": "1-100"
+      },
+      "model": {
+        "type": "String!",
+        "description": "Embedding model to use",
+        "valid_values": [
+          "patspecter"
+        ],
+        "default": "patspecter"
+      }
+    },
+    "output_format": {
+      "structure": {
+        "id": "string (unique identifier)",
+        "score": "float (similarity score 0-1)",
+        "index": "string (source index: patents/publications)",
+        "document": {
+          "title": "string (document title)",
+          "url": "string (document URL)",
+          "PatspecterEmbedding": "[float] (embedding vector)"
+        }
+      }
+    },
+    "best_practices": {
+      "document_parts": [
+        "Include title and abstract as minimum required parts",
+        "Add keywords for better search precision",
+        "Include technical specifications when available",
+        "Limit part content to relevant information only",
+        "Use consistent key naming (title, abstract, keywords, technical_specs)"
+      ],
+      "content_optimization": [
+        "Clean and normalize text content",
+        "Remove excessive whitespace and formatting",
+        "Focus on technical and domain-specific terms",
+        "Include quantitative data and specifications",
+        "Maintain original technical terminology"
+      ],
+      "search_parameters": [
+        "Use both patents and publications indices for comprehensive results",
+        "Adjust amount based on use case (10-50 for most applications)",
+        "Always use 'patspecter' model for technical documents",
+        "Consider multiple queries for complex documents"
+      ]
+    },
+    "common_issues": {
+      "empty_results": [
+        "Document parts may be too generic or lack technical content",
+        "Content may not match the domain of indexed documents",
+        "API token may not have access to specified indices",
+        "Network connectivity issues with Logic Mill servers"
+      ],
+      "low_quality_results": [
+        "Document parts may need better keyword extraction",
+        "Content may be too broad or unfocused",
+        "Technical terminology may not be properly identified",
+        "Document structure may not be optimally parsed"
+      ],
+      "api_errors": [
+        "Invalid authentication token",
+        "Malformed GraphQL query structure",
+        "Invalid parameter types or values",
+        "Rate limiting or quota exceeded"
+      ]
+    }
+  },
+  "test_summary": {
+    "extraction_quality": "high",
+    "parts_format_valid": true,
+    "query_format_valid": true,
+    "overall_readiness": "ready",
+    "total_recommendations": 1
+  }
+}

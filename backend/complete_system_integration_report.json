@@ -1,0 +1,342 @@
+{
+  "timestamp": "2025-09-26T12:45:28.226120",
+  "system_info": {
+    "backend_url": "http://localhost:8000",
+    "frontend_url": "http://localhost:3000",
+    "logic_mill_endpoint": "https://api.logic-mill.net/api/v1/graphql/"
+  },
+  "tests": [
+    {
+      "test_name": "Backend Health Check",
+      "status": "passed",
+      "details": {
+        "status_code": 200,
+        "response": {
+          "status": "ok",
+          "service": "core-backend",
+          "tracks": "tech-transfer"
+        }
+      },
+      "errors": []
+    },
+    {
+      "test_name": "Document Extraction - AI Research Paper",
+      "status": "partial",
+      "details": {
+        "extraction_time": 8.790792226791382,
+        "status_code": 200,
+        "extraction_quality": {
+          "title_match": 0.0,
+          "domain_match": 0.0,
+          "technology_coverage": 0.0,
+          "application_coverage": 0.0,
+          "overall_score": 0.0
+        }
+      },
+      "errors": [
+        "Low extraction quality or format issues"
+      ],
+      "extracted_data": {
+        "analysis_id": "94f31108-9f30-4b50-9c8e-e3e10ce6f629",
+        "status": "completed",
+        "extracted_data": {
+          "title": "Transformer-Based Neural Architecture Search for Efficient Computer Vision",
+          "abstract": "This paper presents a novel approach to neural architecture search (NAS) using transformer-based controllers for computer vision tasks. Our method, called TransNAS, leverages the attention mechanism to efficiently explore the architecture space and discover high-performance models with reduced computational overhead. We demonstrate that TransNAS achieves 96.8% accuracy on ImageNet with 40% fewer parameters compared to manually designed architectures. The approach incorporates progressive search strategies and hardware-aware optimization to ensure practical deployment on edge devices.",
+          "key_technologies": [
+            "Transformer",
+            "Neural Architecture Search",
+            "Computer Vision",
+            "Attention Mechanism",
+            "Edge Computing",
+            "Model Optimization"
+          ],
+          "research_domain": "Artificial Intelligence",
+          "methodology": [
+            "Transformer-based controller",
+            "Neural architecture search"
+          ],
+          "findings": [
+            "Achieved 96.8% accuracy on ImageNet with 40% fewer parameters compared to manually designed architectures",
+            "Incorporates progressive search strategies and hardware-aware optimization for practical deployment on edge devices"
+          ],
+          "applications": [
+            "autonomous vehicles",
+            "mobile AR/VR",
+            "real-time video analysis",
+            "smart cameras"
+          ],
+          "technical_keywords": [
+            "neural architecture search",
+            "transformer",
+            "computer vision",
+            "attention mechanism",
+            "edge computing",
+            "model optimization",
+            "architecture search space",
+            "GPU hours",
+            "model size",
+            "inference latency",
+            "autonomous vehicles",
+            "mobile AR/VR",
+            "real-time video analysis",
+            "smart cameras",
+            "progressive search strategies",
+            "hardware-aware optimization"
+          ],
+          "innovation_aspects": [
+            "Transformer-based controller for neural architecture search",
+            "Attention mechanism for efficient exploration of architecture space",
+            "Hardware-aware optimization for practical deployment on edge devices"
+          ],
+          "commercial_potential": {
+            "market_size": "Rapidly growing AI and computer vision market",
+            "competitive_advantage": "Efficient architecture search with reduced computational overhead",
+            "barriers": "Further research and development required to validate performance and deployment on edge devices"
+          },
+          "technology_classification": "AI/ML",
+          "innovation_level": "significant",
+          "commercial_readiness": "research",
+          "patent_keywords": [
+            "neural architecture search",
+            "transformer-based controller",
+            "computer vision tasks",
+            "attention mechanism",
+            "edge devices",
+            "model optimization",
+            "architecture search space",
+            "model performance"
+          ],
+          "market_applications": [
+            "transportation",
+            "consumer electronics",
+            "surveillance",
+            "computer vision"
+          ],
+          "technical_specifications": {
+            "architecture": "Transformer-based controller with 12 attention heads",
+            "search_space": "10^18 possible architectures",
+            "training_time": "48 GPU hours on V100",
+            "model_size": "15.2M parameters",
+            "inference_latency": "8.3ms on mobile GPU"
+          },
+          "confidence_score": 1.0,
+          "extraction_quality": "high",
+          "extraction_logs": [
+            "Starting Claude-powered extraction",
+            "Basic research data extracted",
+            "Technical parameters extracted",
+            "Commercial indicators extracted",
+            "Search keywords extracted"
+          ]
+        },
+        "similarity_results": [],
+        "optimization_metrics": {
+          "total_search_terms": 24,
+          "weighted_terms_used": 24,
+          "confidence_boost_applied": 1.0,
+          "search_strategy": "comprehensive",
+          "processing_time": 8.759848800022155
+        },
+        "validation_results": {
+          "extraction_validation": {
+            "is_valid": true,
+            "issues": [],
+            "recommendations": [],
+            "completeness_score": 1.0
+          },
+          "search_validation": {
+            "total_results": 0,
+            "high_confidence_results": 0,
+            "technology_matches": 0,
+            "domain_matches": 0,
+            "average_score": 0.0,
+            "match_type_distribution": {},
+            "quality_assessment": "no_results"
+          }
+        },
+        "recommendations": [
+          "No technology-specific matches found - verify technical keyword extraction"
+        ]
+      },
+      "logic_mill_format": [],
+      "similarity_results": []
+    },
+    {
+      "test_name": "Document Extraction - Biotech Patent",
+      "status": "failed",
+      "details": {},
+      "errors": [
+        "Pipeline error: Server disconnected"
+      ],
+      "extracted_data": {},
+      "logic_mill_format": [],
+      "similarity_results": []
+    },
+    {
+      "test_name": "Document Extraction - Materials Science Paper",
+      "status": "partial",
+      "details": {
+        "extraction_time": 11.049489736557007,
+        "status_code": 200,
+        "extraction_quality": {
+          "title_match": 0.0,
+          "domain_match": 0.0,
+          "technology_coverage": 0.0,
+          "application_coverage": 0.0,
+          "overall_score": 0.0
+        }
+      },
+      "errors": [
+        "Low extraction quality or format issues"
+      ],
+      "extracted_data": {
+        "analysis_id": "4beac03e-fdd1-40f7-9eda-83842f8c2e61",
+        "status": "completed",
+        "extracted_data": {
+          "title": "High-Performance Graphene-Silicon Carbide Composites for Next-Generation Electronics",
+          "abstract": "We report the synthesis and characterization of novel graphene-silicon carbide (G-SiC) composites with exceptional electrical and thermal properties. The composite material exhibits electrical conductivity of 2.1 \u00d7 10^6 S/m, thermal conductivity of 1800 W/m\u00b7K, and mechanical strength exceeding 200 GPa. These properties make it ideal for high-frequency electronics, power devices, and thermal management applications in aerospace and automotive industries.",
+          "key_technologies": [
+            "graphene",
+            "silicon carbide",
+            "CVD synthesis",
+            "plasma-enhanced surface functionalization",
+            "multi-layer stacking"
+          ],
+          "research_domain": "Materials Science",
+          "methodology": [
+            "CVD synthesis at 1200\u00b0C under argon atmosphere",
+            "Plasma-enhanced surface functionalization",
+            "Multi-layer stacking with controlled interlayer spacing",
+            "Characterization using XRD, SEM, and electrical measurements"
+          ],
+          "findings": {
+            "electrical_conductivity": "2.1 \u00d7 10^6 S/m",
+            "thermal_conductivity": "1800 W/m\u00b7K",
+            "tensile_strength": "205 GPa",
+            "operating_temperature": "up to 600\u00b0C",
+            "frequency_response": "up to 100 GHz"
+          },
+          "applications": [
+            "5G/6G electronics",
+            "electric vehicle power systems",
+            "aerospace thermal management",
+            "high-power RF devices"
+          ],
+          "technical_keywords": [
+            "graphene-silicon carbide composites",
+            "electrical conductivity",
+            "thermal conductivity",
+            "mechanical strength",
+            "high-frequency electronics",
+            "power devices",
+            "thermal management",
+            "chemical vapor deposition",
+            "plasma-enhanced functionalization",
+            "X-ray diffraction",
+            "scanning electron microscopy",
+            "5G/6G electronics",
+            "electric vehicle power systems",
+            "aerospace thermal management",
+            "high-power RF devices"
+          ],
+          "innovation_aspects": [
+            "Novel graphene-silicon carbide composite material",
+            "Exceptional electrical and thermal properties",
+            "High mechanical strength"
+          ],
+          "commercial_potential": {
+            "market_size": "Significant potential in high-performance electronics and thermal management markets",
+            "competitive_advantage": "Exceptional electrical, thermal, and mechanical properties compared to existing materials",
+            "barriers": "Further research and development required to scale up production and achieve commercial viability"
+          },
+          "technology_classification": "Materials",
+          "innovation_level": "breakthrough",
+          "commercial_readiness": "research",
+          "patent_keywords": [
+            "graphene-SiC composites",
+            "high-performance electronics",
+            "thermal management materials",
+            "high-frequency devices",
+            "power semiconductor devices",
+            "aerospace thermal solutions",
+            "CVD synthesis",
+            "plasma functionalization"
+          ],
+          "market_applications": [
+            "telecommunications",
+            "electric vehicles",
+            "aerospace",
+            "power electronics"
+          ],
+          "technical_specifications": {
+            "electrical_conductivity": 2100000,
+            "thermal_conductivity": 1800,
+            "tensile_strength": 205,
+            "operating_temperature": 600,
+            "frequency_response": 100
+          },
+          "confidence_score": 1.0,
+          "extraction_quality": "high",
+          "extraction_logs": [
+            "Starting Claude-powered extraction",
+            "Basic research data extracted",
+            "Technical parameters extracted",
+            "Commercial indicators extracted",
+            "Search keywords extracted"
+          ]
+        },
+        "similarity_results": [],
+        "optimization_metrics": {
+          "total_search_terms": 23,
+          "weighted_terms_used": 23,
+          "confidence_boost_applied": 1.0,
+          "search_strategy": "comprehensive",
+          "processing_time": 9.046633099991595
+        },
+        "validation_results": {
+          "extraction_validation": {
+            "is_valid": true,
+            "issues": [],
+            "recommendations": [],
+            "completeness_score": 1.0
+          },
+          "search_validation": {
+            "total_results": 0,
+            "high_confidence_results": 0,
+            "technology_matches": 0,
+            "domain_matches": 0,
+            "average_score": 0.0,
+            "match_type_distribution": {},
+            "quality_assessment": "no_results"
+          }
+        },
+        "recommendations": [
+          "No technology-specific matches found - verify technical keyword extraction"
+        ]
+      },
+      "logic_mill_format": [],
+      "similarity_results": []
+    },
+    {
+      "test_name": "Performance Metrics",
+      "status": "passed",
+      "details": {
+        "total_documents": 2,
+        "successful_extractions": 2,
+        "total_time": 8.436612606048584,
+        "avg_time_per_document": 4.218306303024292,
+        "throughput_docs_per_second": 0.23706196946462976,
+        "success_rate": 100.0
+      },
+      "errors": []
+    }
+  ],
+  "summary": {
+    "total_tests": 5,
+    "passed_tests": 2,
+    "partial_tests": 2,
+    "failed_tests": 1,
+    "success_rate": 60.0,
+    "overall_status": "partial"
+  }
+}

@@ -11,6 +11,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import {
   Users,
   Building,
@@ -24,7 +26,25 @@ import {
   BarChart3,
   PieChart,
   Activity,
+  Download,
+  Share2,
+  ExternalLink,
+  Search,
+  Filter,
+  Eye,
+  ChevronDown,
+  ChevronUp,
+  Info,
+  Zap,
+  GitBranch,
+  Layers,
+  MapPin,
+  TrendingDown,
+  Award,
+  Link,
+  Upload,
 } from "lucide-react";
+import SimilaritySearchCard from "./SimilaritySearchCard";
 
 interface CompetitiveIntelligenceData {
   analysis_id: string;
@@ -83,15 +103,73 @@ interface CompetitiveIntelligenceData {
 interface CompetitiveIntelligenceProps {
   analysisId: string;
   className?: string;
+  showTechnicalDetails?: boolean;
+  onExport?: (format: string, data: any) => void;
+  onShare?: (url: string) => void;
+}
+
+interface NetworkNode {
+  id: string;
+  name: string;
+  type: 'inventor' | 'institution' | 'patent';
+  size: number;
+  color: string;
+  patents?: number;
+  collaborations?: number;
+}
+
+interface NetworkLink {
+  source: string;
+  target: string;
+  strength: number;
+  type: 'collaboration' | 'citation' | 'assignment';
+}
+
+interface FilterState {
+  strengthLevel: string;
+  organizationType: string;
+  collaborationThreshold: number;
+  patentCountRange: [number, number];
+}
+
+interface ViewState {
+  expandedItems: Set<string>;
+  sortBy: 'strength' | 'patents' | 'collaborations' | 'similarity';
+  sortOrder: 'asc' | 'desc';
+  showFilters: boolean;
+  selectedNetwork: 'inventors' | 'institutions' | 'collaborations' | null;
 }
 
 const CompetitiveIntelligence: React.FC<CompetitiveIntelligenceProps> = ({
   analysisId,
   className = "",
+  showTechnicalDetails = false,
+  onExport,
+  onShare,
 }) => {
   const [data, setData] = useState<CompetitiveIntelligenceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Interactive state
+  const [filters, setFilters] = useState<FilterState>({
+    strengthLevel: 'all',
+    organizationType: 'all',
+    collaborationThreshold: 0,
+    patentCountRange: [0, 1000],
+  });
+  
+  const [viewState, setViewState] = useState<ViewState>({
+    expandedItems: new Set(),
+    sortBy: 'strength',
+    sortOrder: 'desc',
+    showFilters: false,
+    selectedNetwork: null,
+  });
+  
+  const [searchTerm, setSearchTerm] = useState('');
+  const [networkNodes, setNetworkNodes] = useState<NetworkNode[]>([]);
+  const [networkLinks, setNetworkLinks] = useState<NetworkLink[]>([]);
 
   useEffect(() => {
     const fetchCompetitiveData = async () => {
@@ -156,6 +234,150 @@ const CompetitiveIntelligence: React.FC<CompetitiveIntelligenceProps> = ({
     }
   };
 
+  // Helper functions for interactive features
+  const toggleExpanded = (id: string) => {
+    const newExpanded = new Set(viewState.expandedItems);
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id);
+    } else {
+      newExpanded.add(id);
+    }
+    setViewState({ ...viewState, expandedItems: newExpanded });
+  };
+
+  const handleSort = (sortBy: 'strength' | 'patents' | 'collaborations' | 'similarity') => {
+    const newOrder = viewState.sortBy === sortBy && viewState.sortOrder === 'desc' ? 'asc' : 'desc';
+    setViewState({ ...viewState, sortBy, sortOrder: newOrder });
+  };
+
+  const handleExport = (format: 'pdf' | 'excel' | 'json') => {
+    if (onExport && data) {
+      const exportData = {
+        market_position: data.market_position,
+        inventor_network: data.inventor_network,
+        institution_mapping: data.institution_mapping,
+        patent_portfolio_analysis: data.patent_portfolio_analysis,
+        collaboration_networks: data.collaboration_networks,
+        generated_at: new Date().toISOString(),
+      };
+      onExport(format, exportData);
+    }
+  };
+
+  const handleShare = () => {
+    if (onShare) {
+      const shareUrl = `${window.location.origin}/insights?analysisId=${analysisId}&tab=competitive`;
+      onShare(shareUrl);
+    }
+  };
+
+  // Generate network visualization data
+  const generateNetworkData = () => {
+    if (!data) return;
+
+    const nodes: NetworkNode[] = [];
+    const links: NetworkLink[] = [];
+
+    // Add inventor nodes
+    data.inventor_network.top_inventors.forEach((inventor, index) => {
+      nodes.push({
+        id: `inventor-${inventor.name}`,
+        name: inventor.name,
+        type: 'inventor',
+        size: Math.min(inventor.patent_count * 2 + 10, 50),
+        color: '#3b82f6',
+        patents: inventor.patent_count,
+        collaborations: data.inventor_network.key_collaborations.filter(c => 
+          c.inventors.includes(inventor.name)
+        ).length,
+      });
+    });
+
+    // Add collaboration links
+    data.inventor_network.key_collaborations.forEach((collab, index) => {
+      if (collab.inventors.length >= 2) {
+        for (let i = 0; i < collab.inventors.length - 1; i++) {
+          for (let j = i + 1; j < collab.inventors.length; j++) {
+            links.push({
+              source: `inventor-${collab.inventors[i]}`,
+              target: `inventor-${collab.inventors[j]}`,
+              strength: collab.collaboration_count,
+              type: 'collaboration',
+            });
+          }
+        }
+      }
+    });
+
+    // Add institution nodes
+    Object.entries(data.institution_mapping).forEach(([institution, documents]) => {
+      nodes.push({
+        id: `institution-${institution}`,
+        name: institution,
+        type: 'institution',
+        size: Math.min(documents.length * 3 + 15, 60),
+        color: '#10b981',
+        patents: documents.filter(d => d.type === 'patents').length,
+        collaborations: 0,
+      });
+    });
+
+    setNetworkNodes(nodes);
+    setNetworkLinks(links);
+  };
+
+  // Filter and sort data
+  const getFilteredAndSortedData = (items: any[], type: string) => {
+    let filtered = items.filter(item => {
+      const matchesSearch = searchTerm === '' || 
+        (typeof item === 'object' && JSON.stringify(item).toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      const matchesStrength = filters.strengthLevel === 'all' || 
+        (item.strength && item.strength.toLowerCase() === filters.strengthLevel.toLowerCase());
+      
+      return matchesSearch && matchesStrength;
+    });
+
+    // Sort the filtered data
+    filtered.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (viewState.sortBy) {
+        case 'strength':
+          const strengthOrder = { 'HIGH': 3, 'STRONG': 3, 'MEDIUM': 2, 'MODERATE': 2, 'LOW': 1, 'WEAK': 1 };
+          aValue = strengthOrder[a.strength?.toUpperCase() as keyof typeof strengthOrder] || 0;
+          bValue = strengthOrder[b.strength?.toUpperCase() as keyof typeof strengthOrder] || 0;
+          break;
+        case 'patents':
+          aValue = a.patent_count || a.patents?.length || 0;
+          bValue = b.patent_count || b.patents?.length || 0;
+          break;
+        case 'collaborations':
+          aValue = a.collaboration_count || 0;
+          bValue = b.collaboration_count || 0;
+          break;
+        case 'similarity':
+          aValue = a.avg_similarity || a.score || 0;
+          bValue = b.avg_similarity || b.score || 0;
+          break;
+        default:
+          return 0;
+      }
+      
+      const result = aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      return viewState.sortOrder === 'asc' ? result : -result;
+    });
+
+    return filtered;
+  };
+
+  // Generate network data when data changes
+  useEffect(() => {
+    if (data) {
+      generateNetworkData();
+    }
+  }, [data]);
+
   if (loading) {
     return (
       <div className={`space-y-6 ${className}`}>
@@ -209,77 +431,375 @@ const CompetitiveIntelligence: React.FC<CompetitiveIntelligenceProps> = ({
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Market Position Overview */}
-      <Card>
+      {/* Document Upload and Similarity Search */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <SimilaritySearchCard
+          title="Upload PDF Document"
+          description="Upload PDF files for competitive intelligence analysis"
+          icon={Upload as React.ComponentType<{ className?: string; size?: number }>}
+          uploadType="pdf"
+        />
+        <SimilaritySearchCard
+          title="Add Document URL"
+          description="Add documents via URL for market analysis"
+          icon={FileText as React.ComponentType<{ className?: string; size?: number }>}
+          uploadType="url"
+        />
+      </div>
+
+      {/* Enhanced Market Position Overview */}
+      <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Globe className="h-5 w-5" />
-              <CardTitle>Market Position Analysis</CardTitle>
+              <div className="p-2 bg-purple-500/10 rounded-lg">
+                <Globe className="h-5 w-5 text-purple-400" />
+              </div>
+              <div>
+                <CardTitle className="text-slate-200">Market Position Analysis</CardTitle>
+                <CardDescription className="text-slate-400">
+                  Competitive landscape analysis and market maturity assessment
+                </CardDescription>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              {getIntensityIcon(data.market_position.competitive_intensity)}
-              <span className="text-sm font-medium">
-                {data.market_position.competitive_intensity} Competition
-              </span>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                {getIntensityIcon(data.market_position.competitive_intensity)}
+                <span className="text-sm font-medium text-slate-300">
+                  {data.market_position.competitive_intensity} Competition
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleShare}
+                  className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                >
+                  <Share2 className="h-4 w-4 mr-1" />
+                  Share
+                </Button>
+                <div className="relative">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    onClick={() => setViewState({...viewState, showFilters: !viewState.showFilters})}
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Export
+                  </Button>
+                  {viewState.showFilters && (
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-lg z-10">
+                      <div className="p-2 space-y-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start text-slate-300 hover:bg-slate-700"
+                          onClick={() => handleExport('pdf')}
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Export as PDF
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start text-slate-300 hover:bg-slate-700"
+                          onClick={() => handleExport('excel')}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Export as Excel
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start text-slate-300 hover:bg-slate-700"
+                          onClick={() => handleExport('json')}
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Export as JSON
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-          <CardDescription>
-            Competitive landscape analysis and market maturity assessment
-          </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
+          {/* Interactive Market Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 border rounded-lg">
-              <PieChart className="h-8 w-8 mx-auto mb-2 text-blue-600" />
-              <div className="text-2xl font-bold text-blue-600">
+            <div className="text-center p-4 bg-slate-700/30 border border-slate-600 rounded-lg hover:bg-slate-700/50 transition-colors">
+              <div className="p-2 bg-blue-500/10 rounded-lg w-fit mx-auto mb-3">
+                <PieChart className="h-8 w-8 text-blue-400" />
+              </div>
+              <div className="text-2xl font-bold text-blue-400 mb-1">
                 {(data.market_position.patent_density * 100).toFixed(1)}%
               </div>
-              <div className="text-sm text-gray-600">Patent Density</div>
+              <div className="text-sm text-slate-400 mb-2">Patent Density</div>
+              <div className="w-full bg-slate-600 rounded-full h-2">
+                <div 
+                  className="bg-blue-400 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${data.market_position.patent_density * 100}%` }}
+                />
+              </div>
+              {showTechnicalDetails && (
+                <div className="text-xs text-slate-500 mt-2">
+                  Market saturation indicator
+                </div>
+              )}
             </div>
-            <div className="text-center p-4 border rounded-lg">
-              <Target className="h-8 w-8 mx-auto mb-2 text-purple-600" />
-              <div className="text-lg font-bold text-purple-600">
+            
+            <div className="text-center p-4 bg-slate-700/30 border border-slate-600 rounded-lg hover:bg-slate-700/50 transition-colors">
+              <div className="p-2 bg-purple-500/10 rounded-lg w-fit mx-auto mb-3">
+                <Target className="h-8 w-8 text-purple-400" />
+              </div>
+              <div className="text-lg font-bold text-purple-400 mb-1">
                 {data.market_position.market_maturity}
               </div>
-              <div className="text-sm text-gray-600">Market Maturity</div>
+              <div className="text-sm text-slate-400 mb-2">Market Maturity</div>
+              <Badge 
+                variant="outline" 
+                className={`border-purple-500/50 text-purple-300 bg-purple-500/10`}
+              >
+                {data.market_position.market_maturity === 'HIGH' ? 'Mature Market' :
+                 data.market_position.market_maturity === 'MEDIUM' ? 'Growing Market' : 'Emerging Market'}
+              </Badge>
+              {showTechnicalDetails && (
+                <div className="text-xs text-slate-500 mt-2">
+                  Technology lifecycle stage
+                </div>
+              )}
             </div>
-            <div className="text-center p-4 border rounded-lg">
-              <TrendingUp className="h-8 w-8 mx-auto mb-2 text-green-600" />
-              <div className="text-lg font-bold text-green-600">
+            
+            <div className="text-center p-4 bg-slate-700/30 border border-slate-600 rounded-lg hover:bg-slate-700/50 transition-colors">
+              <div className="p-2 bg-green-500/10 rounded-lg w-fit mx-auto mb-3">
+                <TrendingUp className="h-8 w-8 text-green-400" />
+              </div>
+              <div className="text-lg font-bold text-green-400 mb-1">
                 {data.market_position.innovation_opportunity}
               </div>
-              <div className="text-sm text-gray-600">
-                Innovation Opportunity
-              </div>
+              <div className="text-sm text-slate-400 mb-2">Innovation Opportunity</div>
+              <Badge 
+                variant="outline" 
+                className={`border-green-500/50 text-green-300 bg-green-500/10`}
+              >
+                {data.market_position.innovation_opportunity === 'HIGH' ? 'High Potential' :
+                 data.market_position.innovation_opportunity === 'MEDIUM' ? 'Moderate Potential' : 'Limited Potential'}
+              </Badge>
+              {showTechnicalDetails && (
+                <div className="text-xs text-slate-500 mt-2">
+                  White space analysis
+                </div>
+              )}
             </div>
           </div>
 
+          {/* Key Market Players */}
           {data.market_position.key_players.length > 0 && (
-            <div className="mt-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">
-                Key Market Players
-              </h4>
+            <div className="p-4 bg-slate-700/20 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-2">
+                  <Award className="h-5 w-5 text-yellow-400" />
+                  <h4 className="text-sm font-medium text-slate-300">
+                    Key Market Players ({data.market_position.key_players.length})
+                  </h4>
+                </div>
+                {showTechnicalDetails && (
+                  <Badge variant="outline" className="border-slate-600 text-slate-400">
+                    Competitive Analysis
+                  </Badge>
+                )}
+              </div>
               <div className="flex flex-wrap gap-2">
                 {data.market_position.key_players.map((player, index) => (
-                  <Badge key={index} variant="secondary">
+                  <Badge 
+                    key={index} 
+                    variant="secondary"
+                    className="bg-slate-700 text-slate-300 border-slate-600 hover:bg-slate-600 cursor-pointer transition-colors"
+                    onClick={() => {
+                      // Could trigger detailed analysis of this player
+                    }}
+                  >
+                    <Building className="h-3 w-3 mr-1" />
                     {player}
                   </Badge>
                 ))}
+              </div>
+              {showTechnicalDetails && (
+                <div className="mt-3 text-xs text-slate-500">
+                  Click on a player to view detailed competitive analysis
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Network Visualization Preview */}
+          {networkNodes.length > 0 && (
+            <div className="p-4 bg-slate-700/20 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-2">
+                  <Network className="h-5 w-5 text-emerald-400" />
+                  <h4 className="text-sm font-medium text-slate-300">
+                    Network Overview
+                  </h4>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                  onClick={() => setViewState({...viewState, selectedNetwork: 'inventors'})}
+                >
+                  <Eye className="h-3 w-3 mr-1" />
+                  View Network
+                </Button>
+              </div>
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <div className="text-lg font-bold text-blue-400">
+                    {networkNodes.filter(n => n.type === 'inventor').length}
+                  </div>
+                  <div className="text-xs text-slate-400">Inventors</div>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-green-400">
+                    {networkNodes.filter(n => n.type === 'institution').length}
+                  </div>
+                  <div className="text-xs text-slate-400">Institutions</div>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-purple-400">
+                    {networkLinks.length}
+                  </div>
+                  <div className="text-xs text-slate-400">Connections</div>
+                </div>
               </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Detailed Analysis Tabs */}
+      {/* Enhanced Analysis Tabs */}
       <Tabs defaultValue="inventors" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="inventors">Inventor Network</TabsTrigger>
-          <TabsTrigger value="institutions">Institutions</TabsTrigger>
-          <TabsTrigger value="portfolios">Patent Portfolios</TabsTrigger>
-          <TabsTrigger value="collaborations">Collaborations</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between mb-4">
+          <TabsList className="grid grid-cols-4 bg-slate-800 border-slate-700">
+            <TabsTrigger value="inventors" className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-300">
+              <Users className="h-4 w-4 mr-1" />
+              Inventors
+            </TabsTrigger>
+            <TabsTrigger value="institutions" className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-300">
+              <Building className="h-4 w-4 mr-1" />
+              Institutions
+            </TabsTrigger>
+            <TabsTrigger value="portfolios" className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-300">
+              <Briefcase className="h-4 w-4 mr-1" />
+              Portfolios
+            </TabsTrigger>
+            <TabsTrigger value="collaborations" className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-300">
+              <Network className="h-4 w-4 mr-1" />
+              Networks
+            </TabsTrigger>
+          </TabsList>
+          
+          {/* Search and Filter Controls */}
+          <div className="flex items-center space-x-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search competitors..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 bg-slate-800 border border-slate-600 rounded-lg text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm w-64"
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setViewState({...viewState, showFilters: !viewState.showFilters})}
+              className="border-slate-600 text-slate-300 hover:bg-slate-700"
+            >
+              <Filter className="h-4 w-4 mr-1" />
+              Filters
+            </Button>
+          </div>
+        </div>
+        
+        {/* Filter Panel */}
+        {viewState.showFilters && (
+          <Card className="bg-slate-800/50 border-slate-700 mb-4">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-slate-400 mb-2 block">Strength Level</label>
+                  <select
+                    value={filters.strengthLevel}
+                    onChange={(e) => setFilters({...filters, strengthLevel: e.target.value})}
+                    className="w-full bg-slate-700 border border-slate-600 rounded text-slate-200 text-sm p-2"
+                  >
+                    <option value="all">All Levels</option>
+                    <option value="high">High Strength</option>
+                    <option value="medium">Medium Strength</option>
+                    <option value="low">Low Strength</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-400 mb-2 block">Organization Type</label>
+                  <select
+                    value={filters.organizationType}
+                    onChange={(e) => setFilters({...filters, organizationType: e.target.value})}
+                    className="w-full bg-slate-700 border border-slate-600 rounded text-slate-200 text-sm p-2"
+                  >
+                    <option value="all">All Types</option>
+                    <option value="university">Universities</option>
+                    <option value="corporation">Corporations</option>
+                    <option value="government">Government</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-400 mb-2 block">Min Collaborations</label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="50"
+                    value={filters.collaborationThreshold}
+                    onChange={(e) => setFilters({...filters, collaborationThreshold: parseInt(e.target.value)})}
+                    className="w-full"
+                  />
+                  <div className="text-xs text-slate-400 mt-1">{filters.collaborationThreshold}</div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-400 mb-2 block">Sort By</label>
+                  <div className="flex space-x-1">
+                    <Button
+                      variant={viewState.sortBy === 'strength' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handleSort('strength')}
+                      className="text-xs"
+                    >
+                      Strength
+                      {viewState.sortBy === 'strength' && (
+                        viewState.sortOrder === 'desc' ? <ChevronDown className="h-3 w-3 ml-1" /> : <ChevronUp className="h-3 w-3 ml-1" />
+                      )}
+                    </Button>
+                    <Button
+                      variant={viewState.sortBy === 'patents' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handleSort('patents')}
+                      className="text-xs"
+                    >
+                      Patents
+                      {viewState.sortBy === 'patents' && (
+                        viewState.sortOrder === 'desc' ? <ChevronDown className="h-3 w-3 ml-1" /> : <ChevronUp className="h-3 w-3 ml-1" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <TabsContent value="inventors" className="space-y-4">
           <Card>
