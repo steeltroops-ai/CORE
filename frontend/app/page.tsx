@@ -320,7 +320,11 @@ export default function HomePage() {
                 title="Research Insights"
                 subtitle="Deep analysis of your research content"
               >
-                <InsightsIntegrated analysisId={analysisId} />
+                <InsightsIntegrated
+                  analysisId={analysisId}
+                  onDocumentUpload={handleDocumentUpload}
+                  isUploading={isSubmitting}
+                />
               </ViewContainer>
             )}
 

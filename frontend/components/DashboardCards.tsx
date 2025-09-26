@@ -45,8 +45,8 @@ type AnalysisCard = {
 const analysisCards: AnalysisCard[] = [
   {
     id: "insights",
-    title: "Research Insights",
-    description: "Analyze document content and extract key insights",
+    title: "Track 1: Tech Transfer Insights",
+    description: "Comprehensive analysis including novelty assessment, competitive intelligence, and commercialization opportunities",
     icon: LuSearch,
     color: "emerald",
   },
