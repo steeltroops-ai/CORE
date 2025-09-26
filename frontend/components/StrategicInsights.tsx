@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -282,7 +282,7 @@ const StrategicInsights: React.FC<StrategicInsightsProps> = ({
   };
 
   // Calculate risk scores for matrix visualization
-  const calculateRiskMatrix = () => {
+  const calculateRiskMatrix = useCallback(() => {
     if (!data) return;
 
     const riskLevels = { 'LOW': 1, 'MEDIUM': 2, 'HIGH': 3 };
@@ -311,7 +311,7 @@ const StrategicInsights: React.FC<StrategicInsightsProps> = ({
     };
 
     setRiskMatrix(matrix);
-  };
+  }, [data, setRiskMatrix]);
 
   // Filter and sort data
   const getFilteredAndSortedData = (items: any[], type: string) => {
@@ -362,7 +362,7 @@ const StrategicInsights: React.FC<StrategicInsightsProps> = ({
     if (data) {
       calculateRiskMatrix();
     }
-  }, [data]);
+  }, [data, calculateRiskMatrix]);
 
   if (loading) {
     return (

@@ -515,9 +515,11 @@ export function cleanExtractedText(text: string): string {
     .trim();
 }
 
-export default {
+const documentExtraction = {
   extractPdfContent,
   extractUrlContent,
   validateExtractedContent,
   cleanExtractedText
 };
+
+export default documentExtraction;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -218,7 +218,7 @@ const InsightsIntegrated: React.FC<InsightsIntegratedProps> = ({
     };
   }, [error]);
 
-  const fetchSummaryData = async (retryCount = 0) => {
+  const fetchSummaryData = useCallback(async (retryCount = 0) => {
     if (!analysisId) return;
 
     try {
@@ -316,7 +316,7 @@ const InsightsIntegrated: React.FC<InsightsIntegratedProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [analysisId, maxRetries, setRetryAttempts, setConnectionStatus, setSummary, setError, setLastError, setLoading]);
 
   const handleRefresh = async () => {
     setRefreshing(true);

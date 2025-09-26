@@ -114,7 +114,7 @@ export class VCAnalysisService {
 
   private async analyzePitchDeck(pitchDeck?: VCAnalysisInput['pitchDeck']) {
     if (!pitchDeck?.file && !pitchDeck?.slides) {
-      return null;
+      return undefined;
     }
 
     const prompt = `
@@ -137,7 +137,7 @@ export class VCAnalysisService {
       return this.parseDeckAnalysis(analysis);
     } catch (error) {
       console.error('Pitch deck analysis failed:', error);
-      return null;
+      return undefined;
     }
   }
 

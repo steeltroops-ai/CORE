@@ -369,7 +369,7 @@ export function validateDocumentData(title: string, abstract: string): {
   };
 }
 
-export default {
+const logicMillApi = {
   encodeDocument,
   encodeMultipleDocuments,
   encodeDocumentAndSimilaritySearch,
@@ -379,3 +379,5 @@ export default {
   formatMultipleDocumentsForLogicMill,
   validateDocumentData,
 };
+
+export default logicMillApi;
