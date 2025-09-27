@@ -186,38 +186,6 @@ const InsightsIntegrated: React.FC<InsightsIntegratedProps> = ({
   const [retryAttempts, setRetryAttempts] = useState(0);
   const [lastError, setLastError] = useState<Error | null>(null);
 
-  useEffect(() => {
-    if (analysisId) {
-      fetchSummaryData();
-    } else {
-      setLoading(false);
-      setError("No analysis available. Please upload a document first.");
-    }
-  }, [analysisId]);
-
-  // Monitor network status
-  useEffect(() => {
-    const handleOnline = () => {
-      setConnectionStatus('online');
-      if (error && error.includes('Network error')) {
-        // Retry fetching data when connection is restored
-        fetchSummaryData();
-      }
-    };
-    
-    const handleOffline = () => {
-      setConnectionStatus('offline');
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, [error]);
-
   const fetchSummaryData = useCallback(async (retryCount = 0) => {
     if (!analysisId) return;
 
@@ -317,6 +285,40 @@ const InsightsIntegrated: React.FC<InsightsIntegratedProps> = ({
       setLoading(false);
     }
   }, [analysisId, maxRetries, setRetryAttempts, setConnectionStatus, setSummary, setError, setLastError, setLoading]);
+
+  useEffect(() => {
+    if (analysisId) {
+      fetchSummaryData();
+    } else {
+      setLoading(false);
+      setError("No analysis available. Please upload a document first.");
+    }
+  }, [analysisId, fetchSummaryData]);
+
+  // Monitor network status
+  useEffect(() => {
+    const handleOnline = () => {
+      setConnectionStatus('online');
+      if (error && error.includes('Network error')) {
+        // Retry fetching data when connection is restored
+        fetchSummaryData();
+      }
+    };
+    
+    const handleOffline = () => {
+      setConnectionStatus('offline');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [error, fetchSummaryData]);
+
+
 
   const handleRefresh = async () => {
     setRefreshing(true);

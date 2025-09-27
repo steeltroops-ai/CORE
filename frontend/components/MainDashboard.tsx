@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect, Suspense } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -16,6 +16,7 @@ import {
   DollarSign,
   Download,
   Eye,
+  ExternalLink,
   FileText,
   Globe,
   Lightbulb,
@@ -29,7 +30,15 @@ import {
   Upload,
   Users,
   Zap,
+  Rocket,
+  Shield
 } from "lucide-react";
+import LoadingSpinner, { SkeletonCard, LazyLoadWrapper } from '@/components/LoadingSpinner';
+import { TouchButton, SwipeGesture } from '@/components/TouchInteractions';
+import ResponsiveImage from '@/components/ResponsiveImage';
+import { createLazyComponent, memoryManagement, deviceOptimization } from '@/utils/performance';
+const { debounce } = memoryManagement;
+const { optimizeForDevice } = deviceOptimization;
 
 interface DashboardMetrics {
   totalAnalyses: number;
@@ -76,6 +85,34 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
 }) => {
   const [showAchievements, setShowAchievements] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isOptimized, setIsOptimized] = useState(false);
+
+  // Device optimization and performance monitoring
+  useEffect(() => {
+    const initializeOptimizations = async () => {
+      try {
+        await optimizeForDevice();
+        setIsOptimized(true);
+      } catch (error) {
+        console.warn('Device optimization failed:', error);
+      }
+    };
+
+    initializeOptimizations();
+  }, []);
+
+  // Debounced resize handler for responsive adjustments
+  useEffect(() => {
+    const handleResize = debounce(() => {
+      // Trigger re-optimization on significant screen size changes
+      if (window.innerWidth !== window.screen.width) {
+        optimizeForDevice();
+      }
+    }, 250);
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -205,10 +242,11 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
             </div>
             
             {/* Award Button */}
-            <Button
+            <TouchButton
               onClick={() => setShowAchievements(true)}
               className="relative bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-500/30 text-yellow-400 hover:from-yellow-500/25 hover:to-orange-500/25 hover:border-yellow-500/40 transition-all duration-200 group"
               size="lg"
+              hapticFeedback={true}
             >
               <Award className="h-5 w-5 mr-2 group-hover:rotate-12 transition-transform" />
               <span className="font-semibold">Awards</span>
@@ -218,7 +256,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
               {unlockedAchievements > 0 && (
                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-pulse" />
               )}
-            </Button>
+            </TouchButton>
           </div>
           
           {/* Quick Stats */}
@@ -255,90 +293,92 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-blue-500/10 to-transparent rounded-full blur-xl" />
       </div>
 
-      {/* Key Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 hover:border-slate-600 transition-all duration-200">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-slate-400">
-              <FileText className="h-4 w-4" />
-              Research Papers
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="text-2xl font-bold text-emerald-400">
-                {metrics.totalAnalyses}
+      {/* Key Metrics Grid - Responsive */}
+      <LazyLoadWrapper fallback={<SkeletonCard />}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 hover:border-slate-600 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:shadow-emerald-500/10">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-slate-400 truncate">
+                <FileText className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                Research Papers
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="text-xl sm:text-2xl font-bold text-emerald-400">
+                  {metrics.totalAnalyses}
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-slate-400">Analyzed</div>
+                  <div className="text-xs text-emerald-300">+{metrics.activeProjects} active</div>
+                </div>
               </div>
-              <div className="text-right">
-                <div className="text-xs text-slate-400">Analyzed</div>
-                <div className="text-xs text-emerald-300">+{metrics.activeProjects} active</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 hover:border-slate-600 transition-all duration-200">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-slate-400">
-              <Search className="h-4 w-4" />
-              Similarity Searches
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="text-2xl font-bold text-blue-400">
-                {metrics.similaritySearches}
+          <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 hover:border-slate-600 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/10">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-slate-400 truncate">
+                <Search className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                Similarity Searches
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="text-xl sm:text-2xl font-bold text-blue-400">
+                  {metrics.similaritySearches}
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-slate-400">Performed</div>
+                  <div className="text-xs text-blue-300">High accuracy</div>
+                </div>
               </div>
-              <div className="text-right">
-                <div className="text-xs text-slate-400">Performed</div>
-                <div className="text-xs text-blue-300">High accuracy</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 hover:border-slate-600 transition-all duration-200">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-slate-400">
-              <Building className="h-4 w-4" />
-              VC Evaluations
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="text-2xl font-bold text-purple-400">
-                {metrics.vcEvaluations}
+          <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 hover:border-slate-600 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:shadow-purple-500/10">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-slate-400 truncate">
+                <Building className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                VC Evaluations
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="text-xl sm:text-2xl font-bold text-purple-400">
+                  {metrics.vcEvaluations}
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-slate-400">Completed</div>
+                  <div className="text-xs text-purple-300">Investment ready</div>
+                </div>
               </div>
-              <div className="text-right">
-                <div className="text-xs text-slate-400">Completed</div>
-                <div className="text-xs text-purple-300">Investment ready</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 hover:border-slate-600 transition-all duration-200">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-slate-400">
-              <Target className="h-4 w-4" />
-              GTM Strategies
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="text-2xl font-bold text-orange-400">
-                {metrics.gtmStrategies}
+          <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 hover:border-slate-600 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg hover:shadow-orange-500/10">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium text-slate-400 truncate">
+                <Target className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                GTM Strategies
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="text-xl sm:text-2xl font-bold text-orange-400">
+                  {metrics.gtmStrategies}
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-slate-400">Generated</div>
+                  <div className="text-xs text-orange-300">Market ready</div>
+                </div>
               </div>
-              <div className="text-right">
-                <div className="text-xs text-slate-400">Generated</div>
-                <div className="text-xs text-orange-300">Market ready</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      </LazyLoadWrapper>
 
-      {/* Quick Actions */}
+      {/* Quick Actions - Responsive Grid */}
       <Card className="bg-slate-800/50 border-slate-700">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-slate-200">
@@ -347,120 +387,109 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {quickActions.map((action, index) => (
-              <Button
-                key={index}
-                onClick={action.action}
-                variant="outline"
-                className={`h-auto p-4 flex flex-col items-center gap-3 border ${action.color} hover:bg-slate-800/50 transition-all duration-200 group`}
-              >
-                <div className="p-2 rounded-lg bg-current/10">
-                  {action.icon}
-                </div>
-                <div className="text-center">
-                  <div className="font-medium text-sm">{action.title}</div>
-                  <div className="text-xs opacity-70">{action.description}</div>
-                </div>
-                <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </Button>
-            ))}
-          </div>
+          <SwipeGesture
+            onSwipeLeft={() => console.log('Swipe left on quick actions')}
+            onSwipeRight={() => console.log('Swipe right on quick actions')}
+            className="w-full"
+          >
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+              {quickActions.map((action, index) => (
+                <TouchButton
+                  key={index}
+                  onClick={action.action}
+                  variant="ghost"
+                  className={`h-20 sm:h-24 flex flex-col items-center justify-center gap-1 sm:gap-2 border ${action.color} hover:bg-slate-800/50 transition-all duration-200 hover:scale-[1.02] min-h-touch p-2 group`}
+                  hapticFeedback={true}
+                >
+                  <div className="p-2 rounded-lg bg-current/10">
+                    <div className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0">{action.icon}</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="font-medium text-xs sm:text-sm leading-tight">{action.title}</div>
+                    <div className="text-xs opacity-70 hidden sm:block">{action.description}</div>
+                  </div>
+                  <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </TouchButton>
+              ))}
+            </div>
+          </SwipeGesture>
         </CardContent>
       </Card>
 
-      {/* Platform Tools */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Platform Tools - Responsive Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
         {platformTools.map((tool, index) => (
-          <Card
+          <TouchButton
             key={index}
-            className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 hover:border-slate-600 transition-all duration-200 cursor-pointer group overflow-hidden"
             onClick={tool.action}
+            className="p-0 h-auto bg-transparent border-0 hover:bg-transparent"
+            hapticFeedback={true}
           >
-            <div className={`absolute inset-0 bg-gradient-to-br ${tool.gradient} opacity-0 group-hover:opacity-50 transition-opacity duration-300`} />
-            <CardHeader className="relative z-10">
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-slate-700/50 group-hover:bg-slate-600/70 transition-colors duration-200">
-                    {tool.icon}
+            <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 hover:border-slate-600 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg w-full">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-3 rounded-lg bg-gradient-to-br ${tool.gradient}`}>
+                      {tool.icon}
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg text-slate-200">{tool.title}</CardTitle>
+                      <CardDescription className="text-slate-400 text-sm">
+                        {tool.description}
+                      </CardDescription>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-slate-200 font-semibold">{tool.title}</div>
-                    <div className="text-xs text-slate-400">{tool.description}</div>
-                  </div>
+                  <ChevronRight className="h-5 w-5 text-slate-400" />
                 </div>
-                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-200 transition-colors" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="relative z-10">
-              <div className="flex items-center justify-between">
-                <Badge className="bg-slate-700/50 text-slate-300 border-slate-600">
-                  {tool.metrics}
-                </Badge>
-                <div className="text-xs text-slate-400">Click to explore</div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <Badge variant="secondary" className="bg-slate-700/50 text-slate-300">
+                    {tool.metrics}
+                  </Badge>
+                  <div className="text-xs text-slate-400">Click to explore</div>
+                </div>
+              </CardContent>
+            </Card>
+          </TouchButton>
         ))}
       </div>
 
-      {/* Recent Activity */}
-      <Card className="bg-slate-800/50 border-slate-700">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-slate-200">
-            <Clock className="h-5 w-5 text-emerald-400" />
-            Recent Activity
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {metrics.totalAnalyses > 0 ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-700/30">
-                <div className="p-2 rounded-lg bg-emerald-500/10">
-                  <FileText className="h-4 w-4 text-emerald-400" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-slate-200">Research Analysis Completed</div>
-                  <div className="text-xs text-slate-400">Latest analysis finished successfully</div>
-                </div>
-                <div className="text-xs text-slate-400">Just now</div>
-              </div>
-              
-              {metrics.patentsDiscovered > 0 && (
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-700/30">
-                  <div className="p-2 rounded-lg bg-blue-500/10">
-                    <Search className="h-4 w-4 text-blue-400" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-slate-200">Patents Discovered</div>
-                    <div className="text-xs text-slate-400">{metrics.patentsDiscovered} related patents found</div>
-                  </div>
-                  <div className="text-xs text-slate-400">2 min ago</div>
-                </div>
-              )}
+      {/* Empty State for New Users */}
+      {metrics.totalAnalyses === 0 && (
+        <Card className="bg-slate-800/30 border-slate-700 border-dashed">
+          <CardContent className="text-center py-12">
+            <div className="mb-4">
+              <Upload className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-slate-200 mb-2">
+                Welcome to CORE!
+              </h3>
+              <p className="text-slate-400 mb-6 max-w-md mx-auto">
+                Get started by uploading your first research paper to unlock powerful analysis tools and insights.
+              </p>
             </div>
-          ) : (
-            <div className="text-center py-8">
-              <div className="text-slate-400 mb-4">No recent activity</div>
-              <Button onClick={onUpload} className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20">
-                <Upload className="h-4 w-4 mr-2" />
-                Upload your first research paper
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            <TouchButton 
+              onClick={onUpload} 
+              className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+              hapticFeedback={true}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Upload your first research paper
+            </TouchButton>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Achievements Modal */}
+      {/* Achievement Modal */}
       {showAchievements && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-          <Card className="w-full max-w-2xl bg-slate-800 border-slate-700">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="bg-slate-800 border-slate-700 w-full max-w-md max-h-[80vh] overflow-y-auto">
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Award className="h-6 w-6 text-yellow-400" />
-                  <span className="text-slate-200">Achievements</span>
-                </div>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-slate-200">
+                  <Award className="h-5 w-5 text-yellow-400" />
+                  Achievements
+                </CardTitle>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -469,59 +498,65 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
                 >
                   ×
                 </Button>
-              </CardTitle>
+              </div>
+              <CardDescription>
+                Track your progress and unlock new achievements
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {achievements.map((achievement) => (
-                  <div
-                    key={achievement.id}
-                    className={`p-4 rounded-lg border transition-all duration-200 ${
-                      achievement.unlocked
-                        ? "bg-yellow-500/10 border-yellow-500/30"
-                        : "bg-slate-700/30 border-slate-600"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`p-2 rounded-lg ${
-                          achievement.unlocked
-                            ? "bg-yellow-500/20 text-yellow-400"
-                            : "bg-slate-600/50 text-slate-400"
+            <CardContent className="space-y-4">
+              {achievements.map((achievement) => (
+                <div
+                  key={achievement.id}
+                  className={`p-4 rounded-lg border transition-all ${
+                    achievement.unlocked
+                      ? "bg-emerald-500/10 border-emerald-500/30"
+                      : "bg-slate-700/30 border-slate-600"
+                  }`}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div
+                      className={`p-2 rounded-lg ${
+                        achievement.unlocked
+                          ? "bg-emerald-500/20 text-emerald-400"
+                          : "bg-slate-600/50 text-slate-400"
+                      }`}
+                    >
+                      {achievement.icon}
+                    </div>
+                    <div className="flex-1">
+                      <h4
+                        className={`font-medium ${
+                          achievement.unlocked ? "text-slate-200" : "text-slate-400"
                         }`}
                       >
-                        {achievement.icon}
-                      </div>
-                      <div className="flex-1">
-                        <div
-                          className={`font-medium ${
-                            achievement.unlocked ? "text-yellow-300" : "text-slate-300"
-                          }`}
-                        >
-                          {achievement.title}
-                        </div>
-                        <div className="text-sm text-slate-400">
-                          {achievement.description}
-                        </div>
-                        {achievement.maxProgress && (
-                          <div className="mt-2">
-                            <Progress
-                              value={(achievement.progress! / achievement.maxProgress) * 100}
-                              className="h-1.5"
-                            />
-                            <div className="text-xs text-slate-400 mt-1">
-                              {achievement.progress}/{achievement.maxProgress}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      {achievement.unlocked && (
-                        <Star className="h-5 w-5 text-yellow-400 fill-current" />
-                      )}
+                        {achievement.title}
+                      </h4>
+                      <p className="text-xs text-slate-400">
+                        {achievement.description}
+                      </p>
                     </div>
+                    {achievement.unlocked && (
+                      <div className="text-emerald-400">
+                        <Star className="h-4 w-4 fill-current" />
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
+                  {achievement.maxProgress && (
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-400">Progress</span>
+                        <span className="text-slate-400">
+                          {achievement.progress}/{achievement.maxProgress}
+                        </span>
+                      </div>
+                      <Progress
+                        value={(achievement.progress! / achievement.maxProgress) * 100}
+                        className="h-2"
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
             </CardContent>
           </Card>
         </div>

@@ -127,20 +127,20 @@ const GTMLabPage: React.FC = () => {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="inputs" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <TabsContent value="inputs" className="space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 {/* Business Idea Input */}
                 <Card className="bg-slate-800/50 border-slate-700 lg:col-span-2">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Lightbulb className="h-5 w-5 text-yellow-400" />
+                  <CardHeader className="pb-3 sm:pb-6">
+                    <CardTitle className="text-white flex items-center gap-2 text-base sm:text-lg">
+                      <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
                       Business Idea Input
                     </CardTitle>
-                    <CardDescription className="text-slate-400">
+                    <CardDescription className="text-slate-400 text-sm sm:text-base">
                       Upload a PDF document or describe your business idea in detail
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-3 sm:space-y-4">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       <div className="space-y-4">
                         <div className="border-2 border-dashed border-slate-600 rounded-lg p-6 text-center hover:border-slate-500 transition-colors">
@@ -151,19 +151,19 @@ const GTMLabPage: React.FC = () => {
                       </div>
                       <div className="space-y-4">
                         <div className="space-y-2">
-                          <Label className="text-slate-300">Written Business Idea</Label>
+                          <Label className="text-slate-300 text-xs sm:text-sm">Written Business Idea</Label>
                           <Textarea 
                             placeholder="Describe your business idea, product concept, or service offering in detail..."
-                            className="bg-slate-700 border-slate-600 text-white min-h-[120px]"
+                            className="bg-slate-700 border-slate-600 text-white min-h-[100px] sm:min-h-[120px] text-sm sm:text-base"
                             value={formData.businessIdea?.writtenIdea || ''}
                             onChange={(e) => handleInputChange('businessIdea', 'writtenIdea', e.target.value)}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-slate-300">Additional Context</Label>
+                          <Label className="text-slate-300 text-xs sm:text-sm">Additional Context</Label>
                           <Textarea 
                             placeholder="Any additional context, market insights, or specific requirements..."
-                            className="bg-slate-700 border-slate-600 text-white"
+                            className="bg-slate-700 border-slate-600 text-white text-sm sm:text-base"
                             rows={3}
                             value={formData.businessIdea?.description || ''}
                             onChange={(e) => handleInputChange('businessIdea', 'description', e.target.value)}
@@ -176,16 +176,16 @@ const GTMLabPage: React.FC = () => {
 
                 {/* Product Information */}
                 <Card className="bg-slate-800/50 border-slate-700">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Settings className="h-5 w-5 text-blue-400" />
+                  <CardHeader className="pb-3 sm:pb-6">
+                    <CardTitle className="text-white flex items-center gap-2 text-base sm:text-lg">
+                      <Settings className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
                       Product Information
                     </CardTitle>
-                    <CardDescription className="text-slate-400">
+                    <CardDescription className="text-slate-400 text-sm sm:text-base">
                       Define your product features and value proposition
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-3 sm:space-y-4">
                     <div className="space-y-2">
                       <Label className="text-slate-300">Key Features</Label>
                       <Textarea 
@@ -230,49 +230,49 @@ const GTMLabPage: React.FC = () => {
 
                 {/* Market Context */}
                 <Card className="bg-slate-800/50 border-slate-700">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Target className="h-5 w-5 text-orange-400" />
+                  <CardHeader className="pb-3 sm:pb-6">
+                    <CardTitle className="text-white flex items-center gap-2 text-base sm:text-lg">
+                      <Target className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />
                       Market Context
                     </CardTitle>
-                    <CardDescription className="text-slate-400">
+                    <CardDescription className="text-slate-400 text-sm sm:text-base">
                       Define your market environment and assumptions
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-slate-300">Industry</Label>
+                  <CardContent className="space-y-3 sm:space-y-4">
+                    <div className="space-y-1 sm:space-y-2">
+                      <Label className="text-slate-300 text-xs sm:text-sm">Industry</Label>
                       <Input 
                         placeholder="e.g., SaaS, E-commerce, Healthcare, Fintech"
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-slate-700 border-slate-600 text-white text-sm sm:text-base min-h-[44px]"
                         value={formData.marketContext?.industry || ''}
                         onChange={(e) => handleInputChange('marketContext', 'industry', e.target.value)}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-slate-300">Geographic Focus</Label>
+                    <div className="space-y-1 sm:space-y-2">
+                      <Label className="text-slate-300 text-xs sm:text-sm">Geographic Focus</Label>
                       <Input 
                         placeholder="e.g., North America, Europe, Global"
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-slate-700 border-slate-600 text-white text-sm sm:text-base min-h-[44px]"
                         value={formData.marketContext?.geography || ''}
                         onChange={(e) => handleInputChange('marketContext', 'geography', e.target.value)}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-slate-300">Customer Segments</Label>
+                    <div className="space-y-1 sm:space-y-2">
+                      <Label className="text-slate-300 text-xs sm:text-sm">Customer Segments</Label>
                       <Textarea 
                         placeholder="Describe your target customer segments\ne.g., SMBs with 10-100 employees\nEnterprise companies in manufacturing"
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-slate-700 border-slate-600 text-white text-sm sm:text-base"
                         rows={3}
                         value={formData.marketContext?.customerSegments || ''}
                         onChange={(e) => handleInputChange('marketContext', 'customerSegments', e.target.value)}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-slate-300">Market Size (if known)</Label>
+                    <div className="space-y-1 sm:space-y-2">
+                      <Label className="text-slate-300 text-xs sm:text-sm">Market Size (if known)</Label>
                       <Input 
                         placeholder="e.g., $5B TAM, Growing at 15% annually"
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-slate-700 border-slate-600 text-white text-sm sm:text-base min-h-[44px]"
                         value={formData.marketContext?.marketSize || ''}
                         onChange={(e) => handleInputChange('marketContext', 'marketSize', e.target.value)}
                       />
@@ -281,22 +281,24 @@ const GTMLabPage: React.FC = () => {
                 </Card>
               </div>
 
-              <div className="flex justify-center pt-6">
+              <div className="flex justify-center pt-4 sm:pt-6">
                 <Button 
                   onClick={handleAnalyze}
                   disabled={isAnalyzing || !formData.businessIdea?.writtenIdea}
                   size="lg"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 text-lg font-medium min-w-[280px]"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 sm:px-8 sm:py-3 text-sm sm:text-lg font-medium min-w-[240px] sm:min-w-[280px] w-full sm:w-auto max-w-xs sm:max-w-none"
                 >
                   {isAnalyzing ? (
                     <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Analyzing GTM Strategy...
+                      <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white mr-2"></div>
+                      <span className="hidden sm:inline">Analyzing GTM Strategy...</span>
+                      <span className="sm:hidden">Analyzing...</span>
                     </>
                   ) : (
                     <>
-                      <Zap className="h-5 w-5 mr-2" />
-                      Generate GTM Strategy
+                      <Zap className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                      <span className="hidden sm:inline">Generate GTM Strategy</span>
+                      <span className="sm:hidden">Generate Strategy</span>
                     </>
                   )}
                 </Button>
@@ -306,18 +308,18 @@ const GTMLabPage: React.FC = () => {
             <TabsContent value="dashboard" className="space-y-6">
               {/* Overall GTM Score Card */}
               <Card className="bg-gradient-to-r from-emerald-900/50 to-blue-900/50 border-slate-700">
-                <CardHeader className="text-center">
-                  <CardTitle className="text-white text-2xl mb-2">GTM Readiness Score</CardTitle>
-                  <div className="flex items-center justify-center space-x-4">
-                    <div className="text-6xl font-bold text-emerald-400">{analysisData?.overallScore || 75}</div>
-                    <div className="text-slate-300">
-                      <div className="text-lg font-medium">/100</div>
-                      <Badge className={`${getScoreBg(analysisData?.overallScore || 75)} text-white`}>
+                <CardHeader className="text-center p-4 sm:p-6">
+                  <CardTitle className="text-white text-xl sm:text-2xl mb-2">GTM Readiness Score</CardTitle>
+                  <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4">
+                    <div className="text-4xl sm:text-6xl font-bold text-emerald-400">{analysisData?.overallScore || 75}</div>
+                    <div className="text-slate-300 text-center sm:text-left">
+                      <div className="text-base sm:text-lg font-medium">/100</div>
+                      <Badge className={`${getScoreBg(analysisData?.overallScore || 75)} text-white text-xs sm:text-sm`}>
                         Market Ready
                       </Badge>
                     </div>
                   </div>
-                  <CardDescription className="text-slate-400 mt-2">
+                  <CardDescription className="text-slate-400 mt-2 text-sm sm:text-base">
                     Success Probability: <span className="text-emerald-400 font-semibold">{analysisData?.successProbability || 72}%</span>
                   </CardDescription>
                 </CardHeader>
@@ -326,52 +328,52 @@ const GTMLabPage: React.FC = () => {
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {/* Performance Metrics */}
                 <Card className="bg-slate-800/50 border-slate-700 lg:col-span-2">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5 text-blue-400" />
+                  <CardHeader className="p-4 sm:p-6">
+                    <CardTitle className="text-white flex items-center gap-2 text-base sm:text-lg">
+                      <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
                       GTM Performance Metrics
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-slate-300">Market Opportunity</span>
-                          <span className={`font-semibold ${getScoreColor(analysisData?.marketOpportunityScore || 80)}`}>
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                      <div className="space-y-3 sm:space-y-4">
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="text-slate-300 text-sm sm:text-base">Market Opportunity</span>
+                          <span className={`font-semibold text-sm sm:text-base ${getScoreColor(analysisData?.marketOpportunityScore || 80)}`}>
                             {analysisData?.marketOpportunityScore || 80}%
                           </span>
                         </div>
                         <Progress value={analysisData?.marketOpportunityScore || 80} className="h-2" />
                         
-                        <div className="flex justify-between items-center">
-                          <span className="text-slate-300">Product-Market Fit</span>
-                          <span className={`font-semibold ${getScoreColor(analysisData?.productMarketFitScore || 70)}`}>
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="text-slate-300 text-sm sm:text-base">Product-Market Fit</span>
+                          <span className={`font-semibold text-sm sm:text-base ${getScoreColor(analysisData?.productMarketFitScore || 70)}`}>
                             {analysisData?.productMarketFitScore || 70}%
                           </span>
                         </div>
                         <Progress value={analysisData?.productMarketFitScore || 70} className="h-2" />
                         
-                        <div className="flex justify-between items-center">
-                          <span className="text-slate-300">Competitive Position</span>
-                          <span className={`font-semibold ${getScoreColor(analysisData?.competitivePositionScore || 75)}`}>
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="text-slate-300 text-sm sm:text-base">Competitive Position</span>
+                          <span className={`font-semibold text-sm sm:text-base ${getScoreColor(analysisData?.competitivePositionScore || 75)}`}>
                             {analysisData?.competitivePositionScore || 75}%
                           </span>
                         </div>
                         <Progress value={analysisData?.competitivePositionScore || 75} className="h-2" />
                       </div>
                       
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-slate-300">Execution Readiness</span>
-                          <span className={`font-semibold ${getScoreColor(analysisData?.executionReadinessScore || 65)}`}>
+                      <div className="space-y-3 sm:space-y-4">
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="text-slate-300 text-sm sm:text-base">Execution Readiness</span>
+                          <span className={`font-semibold text-sm sm:text-base ${getScoreColor(analysisData?.executionReadinessScore || 65)}`}>
                             {analysisData?.executionReadinessScore || 65}%
                           </span>
                         </div>
                         <Progress value={analysisData?.executionReadinessScore || 65} className="h-2" />
                         
-                        <div className="flex justify-between items-center">
-                          <span className="text-slate-300">Risk Assessment</span>
-                          <span className={`font-semibold ${getScoreColor(analysisData?.riskScore || 60)}`}>
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="text-slate-300 text-sm sm:text-base">Risk Assessment</span>
+                          <span className={`font-semibold text-sm sm:text-base ${getScoreColor(analysisData?.riskScore || 60)}`}>
                             {analysisData?.riskScore || 60}%
                           </span>
                         </div>

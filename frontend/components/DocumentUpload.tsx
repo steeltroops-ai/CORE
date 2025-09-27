@@ -123,8 +123,128 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
   // Claude AI is now the default and only extraction method
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const processPdfFile = useCallback(async (document: UploadedDocument) => {
+    if (!document.file) return;
+
+    try {
+      setDocuments((prev) =>
+        prev.map((doc) =>
+          doc.id === document.id
+            ? { ...doc, status: "processing", progress: 0 }
+            : doc
+        )
+      );
+
+      // Extract content from PDF using real extraction
+      const extractedContent = await extractPdfContent(
+        document.file,
+        (progress) => {
+          setDocuments((prev) =>
+            prev.map((doc) =>
+              doc.id === document.id
+                ? {
+                    ...doc,
+                    progress: progress.progress,
+                    extractionProgress: progress,
+                  }
+                : doc
+            )
+          );
+        }
+      );
+
+      // Validate extracted content
+      const validation = validateExtractedContent(extractedContent);
+
+      setDocuments((prev) =>
+        prev.map((doc) =>
+          doc.id === document.id
+            ? {
+                ...doc,
+                status: "completed",
+                progress: 100,
+                title: extractedContent.title,
+                abstract: extractedContent.abstract,
+                body: extractedContent.body,
+                authors: extractedContent.authors,
+                extractedContent,
+                confidence: extractedContent.confidence,
+                error: validation.isValid
+                  ? undefined
+                  : validation.issues.join(", "),
+              }
+            : doc
+        )
+      );
+    } catch (error) {
+      setDocuments((prev) =>
+        prev.map((doc) =>
+          doc.id === document.id
+            ? {
+                ...doc,
+                status: "error",
+                progress: 0,
+                error: `PDF extraction failed: ${
+                  error instanceof Error ? error.message : "Unknown error"
+                }`,
+              }
+            : doc
+        )
+      );
+    }
+  }, [setDocuments]);
+
+  const processBasicExtraction = useCallback(async (
+    document: UploadedDocument,
+    content: string
+  ) => {
+    try {
+      // Use existing basic extraction logic
+      if (document.type === "pdf" && document.file) {
+        await processPdfFile(document);
+      } else {
+        // Basic text processing for URL content
+        const lines = content.split("\n").filter((line) => line.trim());
+        const title = lines[0] || "Untitled Document";
+        const abstract = lines.slice(1, 3).join(" ") || "No abstract available";
+
+        setDocuments((prev) =>
+          prev.map((doc) =>
+            doc.id === document.id
+              ? {
+                  ...doc,
+                  status: "completed",
+                  progress: 100,
+                  title,
+                  abstract,
+                  body: content,
+                  confidence: "low",
+                  useClaudeExtraction: true, // Claude AI is always used
+                }
+              : doc
+          )
+        );
+      }
+    } catch (error) {
+      setDocuments((prev) =>
+        prev.map((doc) =>
+          doc.id === document.id
+            ? {
+                ...doc,
+                status: "error",
+                progress: 0,
+                error: `Basic extraction failed: ${
+                  error instanceof Error ? error.message : "Unknown error"
+                }`,
+              }
+            : doc
+        )
+      );
+    }
+  }, [setDocuments, processPdfFile]);
+
   // Automatic Claude AI extraction (default method)
-  const processDocumentWithClaudeExtraction = async (
+  const processDocumentWithClaudeExtraction = useCallback(async (
     document: UploadedDocument,
     content: string
   ) => {
@@ -232,56 +352,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
       // Try basic extraction as fallback
       await processBasicExtraction(document, content);
     }
-  };
-
-  const processBasicExtraction = async (
-    document: UploadedDocument,
-    content: string
-  ) => {
-    try {
-      // Use existing basic extraction logic
-      if (document.type === "pdf" && document.file) {
-        await processPdfFile(document);
-      } else {
-        // Basic text processing for URL content
-        const lines = content.split("\n").filter((line) => line.trim());
-        const title = lines[0] || "Untitled Document";
-        const abstract = lines.slice(1, 3).join(" ") || "No abstract available";
-
-        setDocuments((prev) =>
-          prev.map((doc) =>
-            doc.id === document.id
-              ? {
-                  ...doc,
-                  status: "completed",
-                  progress: 100,
-                  title,
-                  abstract,
-                  body: content,
-                  confidence: "low",
-                  useClaudeExtraction: true, // Claude AI is always used
-                }
-              : doc
-          )
-        );
-      }
-    } catch (error) {
-      setDocuments((prev) =>
-        prev.map((doc) =>
-          doc.id === document.id
-            ? {
-                ...doc,
-                status: "error",
-                progress: 0,
-                error: `Basic extraction failed: ${
-                  error instanceof Error ? error.message : "Unknown error"
-                }`,
-              }
-            : doc
-        )
-      );
-    }
-  };
+  }, [setDocuments, processBasicExtraction]);
 
   // Removed extraction method switching - Claude AI is now the only method
 
@@ -343,7 +414,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
         await processPdfFile(newDocument);
       }
     }
-  }, []);
+  }, [processDocumentWithClaudeExtraction, processPdfFile]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -359,76 +430,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({
     handleFiles(files);
   };
 
-  const processPdfFile = async (document: UploadedDocument) => {
-    if (!document.file) return;
 
-    try {
-      setDocuments((prev) =>
-        prev.map((doc) =>
-          doc.id === document.id
-            ? { ...doc, status: "processing", progress: 0 }
-            : doc
-        )
-      );
-
-      // Extract content from PDF using real extraction
-      const extractedContent = await extractPdfContent(
-        document.file,
-        (progress) => {
-          setDocuments((prev) =>
-            prev.map((doc) =>
-              doc.id === document.id
-                ? {
-                    ...doc,
-                    progress: progress.progress,
-                    extractionProgress: progress,
-                  }
-                : doc
-            )
-          );
-        }
-      );
-
-      // Validate extracted content
-      const validation = validateExtractedContent(extractedContent);
-
-      setDocuments((prev) =>
-        prev.map((doc) =>
-          doc.id === document.id
-            ? {
-                ...doc,
-                status: "completed",
-                progress: 100,
-                title: extractedContent.title,
-                abstract: extractedContent.abstract,
-                body: extractedContent.body,
-                authors: extractedContent.authors,
-                extractedContent,
-                confidence: extractedContent.confidence,
-                error: validation.isValid
-                  ? undefined
-                  : validation.issues.join(", "),
-              }
-            : doc
-        )
-      );
-    } catch (error) {
-      setDocuments((prev) =>
-        prev.map((doc) =>
-          doc.id === document.id
-            ? {
-                ...doc,
-                status: "error",
-                progress: 0,
-                error: `PDF extraction failed: ${
-                  error instanceof Error ? error.message : "Unknown error"
-                }`,
-              }
-            : doc
-        )
-      );
-    }
-  };
 
   const handleUrlSubmit = async () => {
     if (!urlFormData.url) {

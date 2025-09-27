@@ -133,23 +133,23 @@ const VCLensPage: React.FC = () => {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="inputs" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <TabsContent value="inputs" className="space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 {/* Research Upload */}
                 <Card className="bg-slate-800/50 border-slate-700">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-emerald-400" />
+                  <CardHeader className="pb-3 sm:pb-6">
+                    <CardTitle className="text-white flex items-center gap-2 text-base sm:text-lg">
+                      <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400" />
                       Research Upload
                     </CardTitle>
-                    <CardDescription className="text-slate-400">
+                    <CardDescription className="text-slate-400 text-sm sm:text-base">
                       Upload research papers, abstracts, or provide links
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="border-2 border-dashed border-slate-600 rounded-lg p-6 text-center hover:border-slate-500 transition-colors">
-                      <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-                      <p className="text-slate-300 mb-2">Drop research files here or click to browse</p>
+                  <CardContent className="space-y-3 sm:space-y-4">
+                    <div className="border-2 border-dashed border-slate-600 rounded-lg p-4 sm:p-6 text-center hover:border-slate-500 transition-colors touch-manipulation">
+                      <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-slate-400 mx-auto mb-2" />
+                      <p className="text-slate-300 mb-1 sm:mb-2 text-sm sm:text-base">Drop research files here or click to browse</p>
                       <p className="text-xs text-slate-500">PDF, DOC, or paste research links</p>
                     </div>
                     <div className="space-y-2">
@@ -166,19 +166,19 @@ const VCLensPage: React.FC = () => {
 
                 {/* Pitch Deck Upload */}
                 <Card className="bg-slate-800/50 border-slate-700">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <PieChart className="h-5 w-5 text-blue-400" />
+                  <CardHeader className="pb-3 sm:pb-6">
+                    <CardTitle className="text-white flex items-center gap-2 text-base sm:text-lg">
+                      <PieChart className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
                       Pitch Deck Upload
                     </CardTitle>
-                    <CardDescription className="text-slate-400">
+                    <CardDescription className="text-slate-400 text-sm sm:text-base">
                       Upload pitch deck for automated slide analysis
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="border-2 border-dashed border-slate-600 rounded-lg p-6 text-center hover:border-slate-500 transition-colors">
-                      <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-                      <p className="text-slate-300 mb-2">Drop pitch deck here</p>
+                  <CardContent className="space-y-3 sm:space-y-4">
+                    <div className="border-2 border-dashed border-slate-600 rounded-lg p-4 sm:p-6 text-center hover:border-slate-500 transition-colors touch-manipulation">
+                      <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-slate-400 mx-auto mb-2" />
+                      <p className="text-slate-300 mb-1 sm:mb-2 text-sm sm:text-base">Drop pitch deck here</p>
                       <p className="text-xs text-slate-500">PPT, PPTX, or PDF format</p>
                     </div>
                     <div className="text-xs text-slate-500">
@@ -189,40 +189,40 @@ const VCLensPage: React.FC = () => {
 
                 {/* Team Information */}
                 <Card className="bg-slate-800/50 border-slate-700">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Users className="h-5 w-5 text-purple-400" />
+                  <CardHeader className="pb-3 sm:pb-6">
+                    <CardTitle className="text-white flex items-center gap-2 text-base sm:text-lg">
+                      <Users className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
                       Team Information
                     </CardTitle>
-                    <CardDescription className="text-slate-400">
+                    <CardDescription className="text-slate-400 text-sm sm:text-base">
                       Founder and team member details
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-slate-300">Founder Names</Label>
+                  <CardContent className="space-y-3 sm:space-y-4">
+                    <div className="space-y-1 sm:space-y-2">
+                      <Label className="text-slate-300 text-xs sm:text-sm">Founder Names</Label>
                       <Input 
                         placeholder="John Doe, Jane Smith"
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-slate-700 border-slate-600 text-white text-sm sm:text-base min-h-[44px]"
                         value={formData.team?.founders?.join(', ') || ''}
                         onChange={(e) => handleInputChange('team', 'founders', e.target.value.split(',').map(s => s.trim()))}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-slate-300">LinkedIn Profiles</Label>
+                    <div className="space-y-1 sm:space-y-2">
+                      <Label className="text-slate-300 text-xs sm:text-sm">LinkedIn Profiles</Label>
                       <Textarea 
                         placeholder="linkedin.com/in/johndoe\nlinkedin.com/in/janesmith"
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-slate-700 border-slate-600 text-white text-sm sm:text-base"
                         rows={3}
                         value={formData.team?.linkedinProfiles?.join('\n') || ''}
                         onChange={(e) => handleInputChange('team', 'linkedinProfiles', e.target.value.split('\n').filter(s => s.trim()))}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-slate-300">GitHub/Publications</Label>
+                    <div className="space-y-1 sm:space-y-2">
+                      <Label className="text-slate-300 text-xs sm:text-sm">GitHub/Publications</Label>
                       <Textarea 
                         placeholder="github.com/johndoe\nscholar.google.com/citations?user=..."
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-slate-700 border-slate-600 text-white text-sm sm:text-base"
                         rows={3}
                         value={[...(formData.team?.githubProfiles || []), ...(formData.team?.publications || [])].join('\n')}
                         onChange={(e) => {
@@ -239,48 +239,48 @@ const VCLensPage: React.FC = () => {
 
                 {/* Market Information */}
                 <Card className="bg-slate-800/50 border-slate-700">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center gap-2">
-                      <Target className="h-5 w-5 text-orange-400" />
+                  <CardHeader className="pb-3 sm:pb-6">
+                    <CardTitle className="text-white flex items-center gap-2 text-base sm:text-lg">
+                      <Target className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />
                       Market Information
                     </CardTitle>
-                    <CardDescription className="text-slate-400">
+                    <CardDescription className="text-slate-400 text-sm sm:text-base">
                       Industry and market assumptions
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-slate-300">Industry</Label>
+                  <CardContent className="space-y-3 sm:space-y-4">
+                    <div className="space-y-1 sm:space-y-2">
+                      <Label className="text-slate-300 text-xs sm:text-sm">Industry</Label>
                       <Input 
                         placeholder="e.g., AI/ML, Biotech, Fintech"
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-slate-700 border-slate-600 text-white text-sm sm:text-base min-h-[44px]"
                         value={formData.market?.industry || ''}
                         onChange={(e) => handleInputChange('market', 'industry', e.target.value)}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-slate-300">Target Customers</Label>
+                    <div className="space-y-1 sm:space-y-2">
+                      <Label className="text-slate-300 text-xs sm:text-sm">Target Customers</Label>
                       <Input 
                         placeholder="e.g., Enterprise, SMB, Consumers"
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-slate-700 border-slate-600 text-white text-sm sm:text-base min-h-[44px]"
                         value={formData.market?.targetCustomers || ''}
                         onChange={(e) => handleInputChange('market', 'targetCustomers', e.target.value)}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-slate-300">Geographic Regions</Label>
+                    <div className="space-y-1 sm:space-y-2">
+                      <Label className="text-slate-300 text-xs sm:text-sm">Geographic Regions</Label>
                       <Input 
                         placeholder="e.g., North America, Europe, Global"
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-slate-700 border-slate-600 text-white text-sm sm:text-base min-h-[44px]"
                         value={formData.market?.regions || ''}
                         onChange={(e) => handleInputChange('market', 'regions', e.target.value)}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-slate-300">Pricing Model</Label>
+                    <div className="space-y-1 sm:space-y-2">
+                      <Label className="text-slate-300 text-xs sm:text-sm">Pricing Model</Label>
                       <Input 
                         placeholder="e.g., SaaS ($50/month), License ($10k)"
-                        className="bg-slate-700 border-slate-600 text-white"
+                        className="bg-slate-700 border-slate-600 text-white text-sm sm:text-base min-h-[44px]"
                         value={formData.market?.pricingModel || ''}
                         onChange={(e) => handleInputChange('market', 'pricingModel', e.target.value)}
                       />
@@ -289,22 +289,22 @@ const VCLensPage: React.FC = () => {
                 </Card>
               </div>
 
-              <div className="flex justify-center pt-6">
+              <div className="flex justify-center pt-4 sm:pt-6">
                 <Button 
                   onClick={handleAnalyze}
                   disabled={isAnalyzing}
                   size="lg"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 text-lg font-medium min-w-[280px]"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 sm:px-8 sm:py-3 text-sm sm:text-lg font-medium min-w-[280px] w-full sm:w-auto max-w-xs sm:max-w-none"
                 >
                   {isAnalyzing ? (
                     <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Analyzing Startup...
+                      <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white mr-2"></div>
+                      <span className="text-sm sm:text-base">Analyzing Startup...</span>
                     </>
                   ) : (
                     <>
-                      <Zap className="h-5 w-5 mr-2" />
-                      Start VC Analysis
+                      <Zap className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                      <span className="text-sm sm:text-base">Start VC Analysis</span>
                     </>
                   )}
                 </Button>
@@ -314,18 +314,18 @@ const VCLensPage: React.FC = () => {
             <TabsContent value="dashboard" className="space-y-6">
               {/* Overall Score Card */}
               <Card className="bg-gradient-to-r from-emerald-900/50 to-blue-900/50 border-slate-700">
-                <CardHeader className="text-center">
-                  <CardTitle className="text-white text-2xl mb-2">VC Readiness Score</CardTitle>
-                  <div className="flex items-center justify-center space-x-4">
-                    <div className="text-6xl font-bold text-emerald-400">{analysisData.overallScore}</div>
-                    <div className="text-slate-300">
-                      <div className="text-lg font-medium">/100</div>
-                      <Badge className={`${getScoreBg(analysisData.overallScore)} text-white`}>
+                <CardHeader className="text-center pb-4 sm:pb-6">
+                  <CardTitle className="text-white text-xl sm:text-2xl mb-2">VC Readiness Score</CardTitle>
+                  <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4">
+                    <div className="text-4xl sm:text-6xl font-bold text-emerald-400">{analysisData.overallScore}</div>
+                    <div className="text-slate-300 text-center sm:text-left">
+                      <div className="text-base sm:text-lg font-medium">/100</div>
+                      <Badge className={`${getScoreBg(analysisData.overallScore)} text-white text-xs sm:text-sm`}>
                         {analysisData.fundingReadiness} Ready
                       </Badge>
                     </div>
                   </div>
-                  <CardDescription className="text-slate-400 mt-2">
+                  <CardDescription className="text-slate-400 mt-2 text-sm sm:text-base">
                     Estimated Valuation: <span className="text-emerald-400 font-semibold">{analysisData.valuation}</span>
                   </CardDescription>
                 </CardHeader>

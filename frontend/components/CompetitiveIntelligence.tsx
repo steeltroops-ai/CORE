@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -272,7 +272,7 @@ const CompetitiveIntelligence: React.FC<CompetitiveIntelligenceProps> = ({
   };
 
   // Generate network visualization data
-  const generateNetworkData = () => {
+  const generateNetworkData = useCallback(() => {
     if (!data) return;
 
     const nodes: NetworkNode[] = [];
@@ -324,7 +324,7 @@ const CompetitiveIntelligence: React.FC<CompetitiveIntelligenceProps> = ({
 
     setNetworkNodes(nodes);
     setNetworkLinks(links);
-  };
+  }, [data]);
 
   // Filter and sort data
   const getFilteredAndSortedData = (items: any[], type: string) => {
@@ -376,7 +376,7 @@ const CompetitiveIntelligence: React.FC<CompetitiveIntelligenceProps> = ({
     if (data) {
       generateNetworkData();
     }
-  }, [data]);
+  }, [data, generateNetworkData]);
 
   if (loading) {
     return (

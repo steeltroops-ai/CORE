@@ -1,13 +1,11 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import {
-  SignInButton,
-  SignUpButton,
-  UserButton,
-  SignedIn,
-  SignedOut,
-} from "@clerk/nextjs";
+import { UserButton, SignedOut, SignedIn, SignInButton, SignUpButton } from "@clerk/nextjs";
+import { Button } from "./ui/button";
+import { MessageSquare, X, Menu, MenuIcon } from "lucide-react";
+import { useChatContext } from "../contexts/ChatContext";
 
 // Check if Clerk is available by checking environment variables
 const isClerkAvailable = () => {
@@ -119,40 +117,84 @@ const PAGE_CONFIGS: Record<string, PageConfig> = {
 };
 
 interface HeaderProps {
-  sidebarCollapsed?: boolean;
+  sidebarCollapsed: boolean;
+  isMobile?: boolean;
+  isTablet?: boolean;
 }
 
-export function Header({ sidebarCollapsed = true }: HeaderProps) {
+export function Header({ sidebarCollapsed, isMobile = false, isTablet = false }: HeaderProps) {
   const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isChatOpen, toggleChat } = useChatContext();
 
   // Get page configuration based on current pathname
   const pageConfig = PAGE_CONFIGS[pathname] || PAGE_CONFIGS["/"];
 
+  // Handle mobile menu toggle
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
   return (
     <header
-      className={`fixed top-0 right-0 z-30 transition-all duration-300 ease-in-out ${
-        sidebarCollapsed ? "left-16" : "left-64"
-      } py-3 bg-slate-950/80 backdrop-blur-xl border-b border-emerald-500/20 shadow-lg shadow-slate-900/20`}
-      style={{
-        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.6) 100%)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        borderImage: 'linear-gradient(90deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.1)) 1',
-      }}
+      className={`fixed top-0 right-0 z-30 h-14 md:h-16 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 transition-all duration-300 ${
+        isMobile ? "left-0" : sidebarCollapsed ? "left-16" : "left-64"
+      }`}
     >
-      <div className="flex items-center justify-between px-6">
-        {/* Page Title and Subheading */}
-        <div className="flex flex-col">
-          <h1 className="text-lg font-semibold text-white tracking-tight">
-            {pageConfig.title}
-          </h1>
-          <p className="text-xs text-slate-400 font-normal">
-            {pageConfig.subheading}
-          </p>
+      <div className="flex items-center justify-between h-full px-3 xs:px-4 sm:px-6">
+        {/* Mobile Menu Button & Title */}
+        <div className="flex items-center space-x-3 md:space-x-4">
+          {isMobile && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleMobileMenu}
+              className="p-2 hover:bg-slate-800 text-slate-300 hover:text-white min-h-touch"
+              aria-label="Toggle mobile menu"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          )}
+          
+          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4">
+            <h1 className="text-lg sm:text-xl font-semibold text-white truncate">
+              {pageConfig.title}
+            </h1>
+            {pageConfig.subheading && !isMobile && (
+              <span className="text-sm text-slate-400 hidden sm:inline">
+                {pageConfig.subheading}
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Authentication Section */}
-        <div className="flex items-center gap-4">
+        {/* Right Side Actions */}
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          {/* Chat Toggle Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleChat}
+            className={`p-2 hover:bg-slate-800 transition-colors min-h-touch ${
+              isChatOpen 
+                ? "text-emerald-400 hover:text-emerald-300" 
+                : "text-slate-400 hover:text-white"
+            }`}
+            aria-label={isChatOpen ? "Close chat" : "Open chat"}
+          >
+            {isChatOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <MessageSquare className="h-5 w-5" />
+            )}
+          </Button>
+
+          {/* User Authentication */}
           <SafeSignedOut>
             <div className="flex items-center gap-3">
               <SafeSignInButton mode="modal">
@@ -172,7 +214,7 @@ export function Header({ sidebarCollapsed = true }: HeaderProps) {
             <SafeUserButton
               appearance={{
                 elements: {
-                  avatarBox: "w-8 h-8",
+                  avatarBox: "w-8 h-8 sm:w-9 sm:h-9 min-h-touch min-w-touch",
                   userButtonPopoverCard:
                     "bg-slate-900/95 border border-slate-700/50 backdrop-blur-sm",
                   userButtonPopoverActions: "bg-slate-900/95",

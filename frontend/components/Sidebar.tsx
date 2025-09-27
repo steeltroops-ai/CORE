@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -25,6 +25,7 @@ import {
   SignedOut,
   useUser,
 } from "@clerk/nextjs";
+import { X } from "lucide-react";
 
 // Check if Clerk is available by checking environment variables
 const isClerkAvailable = () => {
@@ -134,6 +135,9 @@ type SidebarProps = {
   activeView?: string;
   onNavigate?: (view: string) => void;
   onSidebarStateChange?: (isCollapsed: boolean) => void;
+  isMobile?: boolean;
+  isTablet?: boolean;
+  onToggle?: () => void;
 };
 
 const NAV_ITEMS = [
@@ -213,15 +217,71 @@ function AuthenticatedUserInfo({
   return <FallbackUserInfo actuallyCollapsed={actuallyCollapsed} />;
 }
 
+// Mobile toggle button component
+export function MobileToggleButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="fixed top-4 left-4 z-50 p-2 bg-slate-950/95 backdrop-blur-md border border-slate-200/10 rounded-lg text-white hover:bg-slate-800 transition-all duration-200 md:hidden"
+      aria-label="Toggle sidebar"
+    >
+      <svg
+        className="w-5 h-5"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M4 6h16M4 12h16M4 18h16"
+        />
+      </svg>
+    </button>
+  );
+}
+
 export function Sidebar({
   activeView,
   onNavigate,
   onSidebarStateChange,
+  isMobile = false,
+  isTablet = false,
 }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isLogoHovered, setIsLogoHovered] = useState(false);
+
+  // Auto-collapse on mobile and tablet
+  useEffect(() => {
+    if (isMobile) {
+      setIsCollapsed(true);
+    }
+  }, [isMobile]);
+
+  const toggleSidebar = () => {
+    if (isMobile) {
+      setIsMobileOpen(!isMobileOpen);
+    } else {
+      const newCollapsedState = !isCollapsed;
+      setIsCollapsed(newCollapsedState);
+      onSidebarStateChange?.(newCollapsedState);
+    }
+  };
+
+  const closeMobileSidebar = useCallback(() => {
+    if (isMobile) {
+      setIsMobileOpen(false);
+    }
+  }, [isMobile]);
+
+  // Close mobile sidebar when route changes
+  useEffect(() => {
+    closeMobileSidebar();
+  }, [pathname, closeMobileSidebar]);
 
   // Use only the collapsed state
   const actuallyCollapsed = isCollapsed;
@@ -251,13 +311,38 @@ export function Sidebar({
   }, [actuallyCollapsed, onSidebarStateChange]);
 
   return (
-    <aside
-      className={`fixed left-0 top-0 z-40 h-full transition-all duration-300 ease-in-out ${
-        actuallyCollapsed ? "w-16" : "w-64"
-      } flex flex-col border-r border-slate-200/10 bg-slate-950/95 backdrop-blur-md`}
-    >
+    <>
+      {/* Mobile overlay */}
+      {isMobile && isMobileOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm"
+          onClick={closeMobileSidebar}
+        />
+      )}
+      
+      <aside
+        className={`fixed left-0 top-0 z-40 h-full transition-all duration-300 ease-in-out ${
+          isMobile
+            ? isMobileOpen
+              ? "w-64 translate-x-0"
+              : "w-64 -translate-x-full"
+            : actuallyCollapsed
+            ? "w-16"
+            : "w-64"
+        } flex flex-col border-r border-slate-200/10 bg-slate-950/95 backdrop-blur-md`}
+      >
       {/* Logo and Toggle Section */}
       <div className="flex items-center justify-between px-4 py-5 border-b border-slate-200/5">
+        {/* Mobile close button */}
+        {isMobile && isMobileOpen && (
+          <button
+            onClick={closeMobileSidebar}
+            className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-all duration-200"
+            aria-label="Close sidebar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
         {!actuallyCollapsed ? (
           /* Expanded State - Inline Logo with Subheading */
           <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -332,6 +417,8 @@ export function Sidebar({
               onClick={() => {
                 // Call onNavigate if provided (for backward compatibility)
                 onNavigate?.(item.key);
+                // Close mobile sidebar on navigation
+                closeMobileSidebar();
               }}
             >
               <div
@@ -386,6 +473,8 @@ export function Sidebar({
                 onClick={() => {
                   // Call onNavigate if provided (for backward compatibility)
                   onNavigate?.(item.key);
+                  // Close mobile sidebar on navigation
+                  closeMobileSidebar();
                 }}
               >
                 <div
@@ -503,5 +592,6 @@ export function Sidebar({
         </SafeSignedIn>
       </div>
     </aside>
+    </>
   );
 }

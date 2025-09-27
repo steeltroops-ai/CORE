@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { AppLayout } from "@/components/AppLayout";
 import {
@@ -193,12 +193,6 @@ const InsightsPageContent: React.FC = () => {
   const [retryAttempts, setRetryAttempts] = useState(0);
   const [lastError, setLastError] = useState<Error | null>(null);
 
-  useEffect(() => {
-    if (currentAnalysisId && hasAnalyzed) {
-      fetchSummaryData();
-    }
-  }, [currentAnalysisId, hasAnalyzed]);
-
   // Online/offline status detection
   useEffect(() => {
     const handleOnline = () => setConnectionStatus('online');
@@ -213,7 +207,7 @@ const InsightsPageContent: React.FC = () => {
     };
   }, []);
 
-  const fetchSummaryData = async (retryCount = 0) => {
+  const fetchSummaryData = useCallback(async (retryCount = 0) => {
     if (!currentAnalysisId) return;
 
     try {
@@ -297,7 +291,14 @@ const InsightsPageContent: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentAnalysisId]);
+
+  // Effect to fetch data when analysis ID or analyzed state changes
+  useEffect(() => {
+    if (currentAnalysisId && hasAnalyzed) {
+      fetchSummaryData();
+    }
+  }, [currentAnalysisId, hasAnalyzed, fetchSummaryData]);
 
   const handleRefresh = async () => {
     setRefreshing(true);

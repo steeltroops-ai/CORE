@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   LuLoader,
   LuCircleCheck,
@@ -145,13 +145,49 @@ export function AnalysisRedirect({
 
   const [steps, setSteps] = useState<AnalysisStep[]>(analysisSteps);
 
-  useEffect(() => {
-    if (!analysisId || status !== "idle") return;
+  const simulateStepProgress = useCallback((
+    duration: number,
+    stepIndex: number,
+    targetProgress: number
+  ): Promise<void> => {
+    return new Promise((resolve) => {
+      const startTime = Date.now();
+      const startProgress = progress;
 
-    startAnalysis();
-  }, [analysisId, targetView]);
+      const updateProgress = () => {
+        const elapsed = Date.now() - startTime;
+        const progressRatio = Math.min(elapsed / duration, 1);
+        const currentProgress =
+          startProgress + (targetProgress - startProgress) * progressRatio;
 
-  const startAnalysis = async () => {
+        setProgress(currentProgress);
+
+        // Update time remaining
+        const remainingSteps = steps.length - stepIndex - 1;
+        const avgStepTime = 3.5; // seconds
+        const remainingTime = Math.max(
+          0,
+          remainingSteps * avgStepTime + (duration - elapsed) / 1000
+        );
+
+        if (remainingTime > 60) {
+          setTimeRemaining(`${Math.ceil(remainingTime / 60)} min remaining`);
+        } else {
+          setTimeRemaining(`${Math.ceil(remainingTime)} sec remaining`);
+        }
+
+        if (progressRatio < 1) {
+          requestAnimationFrame(updateProgress);
+        } else {
+          resolve();
+        }
+      };
+
+      updateProgress();
+    });
+  }, [progress, steps.length, setProgress, setTimeRemaining]);
+
+  const startAnalysis = useCallback(async () => {
     setStatus("processing");
     setError(null);
     setProgress(0);
@@ -249,49 +285,13 @@ export function AnalysisRedirect({
         }))
       );
     }
-  };
+  }, [analysisId, targetView, onNavigate, onAnalysisComplete, steps.length, simulateStepProgress, currentStep]);
 
-  const simulateStepProgress = (
-    duration: number,
-    stepIndex: number,
-    targetProgress: number
-  ): Promise<void> => {
-    return new Promise((resolve) => {
-      const startTime = Date.now();
-      const startProgress = progress;
+  useEffect(() => {
+    if (!analysisId || status !== "idle") return;
 
-      const updateProgress = () => {
-        const elapsed = Date.now() - startTime;
-        const progressRatio = Math.min(elapsed / duration, 1);
-        const currentProgress =
-          startProgress + (targetProgress - startProgress) * progressRatio;
-
-        setProgress(currentProgress);
-
-        // Update time remaining
-        const remainingSteps = steps.length - stepIndex - 1;
-        const avgStepTime = 3.5; // seconds
-        const remainingTime = Math.max(
-          0,
-          remainingSteps * avgStepTime + (duration - elapsed) / 1000
-        );
-
-        if (remainingTime > 60) {
-          setTimeRemaining(`${Math.ceil(remainingTime / 60)} min remaining`);
-        } else {
-          setTimeRemaining(`${Math.ceil(remainingTime)} sec remaining`);
-        }
-
-        if (progressRatio < 1) {
-          requestAnimationFrame(updateProgress);
-        } else {
-          resolve();
-        }
-      };
-
-      updateProgress();
-    });
-  };
+    startAnalysis();
+  }, [analysisId, targetView, startAnalysis, status]);
 
   const getColorClasses = (color: string) => {
     const colorMap: Record<string, any> = {
