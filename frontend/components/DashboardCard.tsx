@@ -16,7 +16,7 @@ export function DashboardCard({
   children,
 }: DashboardCardProps) {
   return (
-    <section className="rounded-xl border border-slate-800 bg-slate-900/80 p-5 shadow-md">
+    <section className="rounded-xl border border-slate-800 bg-slate-900/80 hover:bg-slate-900/90 hover:border-slate-700 p-5 shadow-md transition-all duration-200">
       <header className="space-y-1">
         <h3 className="text-lg font-semibold text-slate-100">{title}</h3>
 
