@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: core-backend
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: "cd backend && pip install -r requirements.txt"
+    startCommand: "cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.12
+      - key: POETRY_VERSION
+        value: 1.6.1
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: CORS_ORIGINS
+        value: "https://core-five-phi.vercel.app,http://localhost:3000,http://localhost:3001"
+    autoDeploy: true
+    rootDir: .
+    
+  # Optional: Add a Redis service if needed
+  # - type: redis
+  #   name: core-redis
+  #   plan: starter
+  #   maxmemoryPolicy: allkeys-lru
