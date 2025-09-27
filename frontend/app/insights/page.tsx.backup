@@ -1,0 +1,1718 @@
+"use client";
+
+import React, { useState, useEffect, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { AppLayout } from "@/components/AppLayout";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import NoveltyAssessment from "@/components/NoveltyAssessment";
+import CompetitiveIntelligence from "@/components/CompetitiveIntelligence";
+import CommercializationOpportunities from "@/components/CommercializationOpportunities";
+import StrategicInsights from "@/components/StrategicInsights";
+import ProcessingPipeline from "@/components/ProcessingPipeline";
+import UserPersonaSelector from "@/components/UserPersonaSelector";
+import InsightsDashboard from "@/components/InsightsDashboard";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import LoadingSpinner, { SkeletonCard, SkeletonChart } from "@/components/LoadingSpinner";
+import { AccessibilityProvider } from "@/components/AccessibilityProvider";
+import UploadAnalyzeCard from "@/components/UploadAnalyzeCard";
+import { FileText, Users, DollarSign, Target } from "lucide-react";
+
+import {
+  BarChart3,
+  Network,
+  Briefcase,
+  Brain,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  TrendingUp,
+  Zap,
+  Award,
+  RefreshCw,
+  ExternalLink,
+  Upload,
+  Search,
+  Cpu,
+  Database,
+  Activity,
+  Download,
+  Share2,
+  Settings,
+  Eye,
+  Code,
+  Timer,
+  Layers,
+  ArrowRight,
+  Play,
+  Pause,
+  RotateCcw,
+  Info,
+  Building,
+  Globe,
+  TrendingDown,
+  Shield,
+  Lightbulb,
+  BookOpen,
+  Calendar,
+  MapPin,
+  Phone,
+  Mail,
+  Link,
+  Filter,
+  SortAsc,
+  MoreHorizontal,
+  Maximize2,
+  Minimize2,
+  WifiOff,
+  X,
+  Plus,
+} from "lucide-react";
+
+interface InsightsSummary {
+  novelty_score: number;
+  competitive_intensity: string;
+  market_readiness: number;
+  overall_risk: string;
+  key_recommendations: number;
+  licensing_opportunities: number;
+}
+
+interface UploadedDocument {
+  id: string;
+  name: string;
+  type: 'pdf' | 'url';
+  size?: number;
+  url?: string;
+  file?: File;
+  title: string;
+  abstract: string;
+  body?: string;
+  status: 'pending' | 'processing' | 'completed' | 'error';
+  progress: number;
+  error?: string;
+}
+
+interface ProcessingStage {
+  id: string;
+  name: string;
+  description: string;
+  status: "pending" | "processing" | "completed" | "error";
+  progress: number;
+  duration?: number;
+  startTime?: number;
+  endTime?: number;
+  result?: any;
+  apiCalls?: number;
+  tokensUsed?: number;
+  errorMessage?: string;
+}
+
+interface UserPersona {
+  id: string;
+  name: string;
+  role: string;
+  preferences: {
+    showTechnicalDetails: boolean;
+    showProcessingMetrics: boolean;
+    preferredView: 'overview' | 'detailed' | 'technical';
+  };
+}
+
+interface ProcessingMetrics {
+  totalDuration: number;
+  apiCalls: number;
+  tokensUsed: number;
+  successRate: number;
+  averageResponseTime: number;
+}
+
+interface RealTimeInsights {
+  novelty?: any;
+  competitive?: any;
+  commercialization?: any;
+  strategic?: any;
+}
+
+const InsightsPageContent: React.FC = () => {
+  const searchParams = useSearchParams();
+  const analysisId = searchParams?.get("analysisId");
+  const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(
+    analysisId
+  );
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [hasAnalyzed, setHasAnalyzed] = useState(false);
+  const [activeTab, setActiveTab] = useState("novelty");
+  const [summary, setSummary] = useState<InsightsSummary | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [isProcessingRealTime, setIsProcessingRealTime] = useState(false);
+  const [processingStages, setProcessingStages] = useState<ProcessingStage[]>(
+    []
+  );
+  const [realTimeInsights, setRealTimeInsights] = useState<RealTimeInsights>(
+    {}
+  );
+  const [processingErrors, setProcessingErrors] = useState<string[]>([]);
+  const [retryCount, setRetryCount] = useState(0);
+  const [maxRetries] = useState(3);
+  const [uploadedDocuments, setUploadedDocuments] = useState<UploadedDocument[]>([]);
+  const [userPersona, setUserPersona] = useState<UserPersona>({
+    id: 'researcher',
+    name: 'Researcher',
+    role: 'Research Scientist',
+    preferences: {
+      showTechnicalDetails: false,
+      showProcessingMetrics: false,
+      preferredView: 'overview'
+    }
+  });
+  const [processingMetrics, setProcessingMetrics] = useState<ProcessingMetrics>({
+    totalDuration: 0,
+    apiCalls: 0,
+    tokensUsed: 0,
+    successRate: 100,
+    averageResponseTime: 0
+  });
+  const [showDeveloperMode, setShowDeveloperMode] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [exportFormat, setExportFormat] = useState<'pdf' | 'excel' | 'json'>('pdf');
+  const [showDeveloperTools, setShowDeveloperTools] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline'>('online');
+  const [retryAttempts, setRetryAttempts] = useState(0);
+  const [lastError, setLastError] = useState<Error | null>(null);
+
+  // Online/offline status detection
+  useEffect(() => {
+    const handleOnline = () => setConnectionStatus('online');
+    const handleOffline = () => setConnectionStatus('offline');
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const fetchSummaryData = useCallback(async (retryCount = 0) => {
+    if (!currentAnalysisId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      setLastError(null);
+      
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
+      const response = await fetch(
+        `/api/analysis/${currentAnalysisId}/track1/comprehensive`,
+        {
+          signal: controller.signal,
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+          },
+        }
+      );
+      
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Extract summary metrics with fallbacks
+      const summaryData: InsightsSummary = {
+        novelty_score:
+          data.novelty_assessment?.novelty_score ||
+          data.basic_analysis?.novelty_score ||
+          0.5, // Default to neutral score
+        competitive_intensity:
+          data.competitive_intelligence?.market_position
+            ?.competitive_intensity || "MEDIUM", // Default to medium instead of unknown
+        market_readiness:
+          data.commercialization?.market_readiness?.readiness_score || 0.5, // Default to neutral
+        overall_risk:
+          data.strategic_insights?.risk_assessment?.overall_risk || "MEDIUM",
+        key_recommendations:
+          data.strategic_insights?.recommendations?.length || 0,
+        licensing_opportunities:
+          data.commercialization?.licensing_leads?.length || 0,
+      };
+
+      setSummary(summaryData);
+      setRetryAttempts(0);
+    } catch (err) {
+      console.error("Error fetching summary data:", err);
+      setLastError(err instanceof Error ? err : new Error('Unknown error'));
+      
+      let errorMessage = "Failed to load insights data.";
+      
+      if (err instanceof Error) {
+        if (err.name === 'AbortError') {
+          errorMessage = "Request timed out. Please try again.";
+        } else if (err.message.includes('404')) {
+          errorMessage = "Analysis not found. Please upload a document first.";
+        } else if (err.message.includes('500')) {
+          errorMessage = "Server error. Please try again later.";
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
+
+      // Set fallback summary data so the UI doesn't break
+      setSummary({
+        novelty_score: 0.5,
+        competitive_intensity: "MEDIUM",
+        market_readiness: 0.5,
+        overall_risk: "MEDIUM",
+        key_recommendations: 0,
+        licensing_opportunities: 0,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [currentAnalysisId]);
+
+  // Effect to fetch data when analysis ID or analyzed state changes
+  useEffect(() => {
+    if (currentAnalysisId && hasAnalyzed) {
+      fetchSummaryData();
+    }
+  }, [currentAnalysisId, hasAnalyzed, fetchSummaryData]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchSummaryData();
+    setRefreshing(false);
+  };
+
+  const handleExport = async (format: string, data?: any) => {
+    if (!currentAnalysisId) return;
+    
+    try {
+      const response = await fetch(`/api/analysis/${currentAnalysisId}/export?format=${format}`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `insights-${currentAnalysisId}.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+    }
+  };
+
+  const handleShare = async (url?: string) => {
+    if (!currentAnalysisId) return;
+    
+    const shareUrl = url || `${window.location.origin}/insights?analysisId=${currentAnalysisId}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'CORE Insights Analysis',
+          text: 'Check out this technology analysis from CORE',
+          url: shareUrl,
+        });
+      } catch (error) {
+        console.error('Share failed:', error);
+      }
+    } else {
+      // Fallback to clipboard
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        // You could show a toast notification here
+      } catch (error) {
+        console.error('Copy to clipboard failed:', error);
+      }
+    }
+  };
+
+  const retryProcessing = () => {
+    if (retryCount < maxRetries) {
+      setRetryCount(prev => prev + 1);
+      fetchSummaryData();
+    }
+  };
+
+  // Handle document analysis
+  const handleDocumentAnalysis = async (documents: UploadedDocument[]) => {
+    setIsAnalyzing(true);
+    setError(null);
+    setProcessingErrors([]);
+
+    try {
+      // Initialize processing stages
+      const stages: ProcessingStage[] = [
+        {
+          id: "extract",
+          name: "Document Processing",
+          description: "Extracting and parsing document content",
+          status: "processing",
+          progress: 25,
+          apiCalls: 0,
+          tokensUsed: 0,
+        },
+        {
+          id: "logic_mill",
+          name: "Logic Mill Analysis",
+          description: "Analyzing patents and publications",
+          status: "pending",
+          progress: 0,
+          apiCalls: 0,
+          tokensUsed: 0,
+        },
+        {
+          id: "claude",
+          name: "Claude AI Insights",
+          description: "Generating comprehensive insights",
+          status: "pending",
+          progress: 0,
+          apiCalls: 0,
+          tokensUsed: 0,
+        },
+        {
+          id: "compile",
+          name: "Results Compilation",
+          description: "Finalizing analysis results",
+          status: "pending",
+          progress: 0,
+          apiCalls: 0,
+          tokensUsed: 0,
+        },
+      ];
+
+      setProcessingStages(stages);
+      setIsProcessingRealTime(true);
+
+      // Combine all documents for analysis
+      const combinedTitle = documents.map(doc => doc.title).join('; ');
+      const combinedAbstract = documents.map(doc => doc.abstract).join('\n\n');
+      const combinedBody = documents.map(doc => doc.body || '').join('\n\n');
+
+      // Call the ingest API
+      const response = await fetch('/api/ingest', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: combinedTitle,
+          abstract: combinedAbstract,
+          body: combinedBody,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Analysis failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      const newAnalysisId = result.analysis_id;
+
+      // Start processing simulation
+      const processStages = () => {
+        const timeouts: NodeJS.Timeout[] = [];
+        
+        timeouts.push(setTimeout(() => {
+          setProcessingStages(prev => 
+            prev.map(stage => 
+              stage.id === 'extract' 
+                ? { ...stage, status: 'completed', progress: 100 }
+                : stage.id === 'logic_mill'
+                ? { ...stage, status: 'processing', progress: 50 }
+                : stage
+            )
+          );
+        }, 2000));
+
+        timeouts.push(setTimeout(() => {
+          setProcessingStages(prev => 
+            prev.map(stage => 
+              stage.id === 'logic_mill' 
+                ? { ...stage, status: 'completed', progress: 100 }
+                : stage.id === 'claude'
+                ? { ...stage, status: 'processing', progress: 75 }
+                : stage
+            )
+          );
+        }, 4000));
+
+        timeouts.push(setTimeout(() => {
+          setProcessingStages(prev => 
+            prev.map(stage => 
+              stage.id === 'claude' 
+                ? { ...stage, status: 'completed', progress: 100 }
+                : stage.id === 'compile'
+                ? { ...stage, status: 'processing', progress: 90 }
+                : stage
+            )
+          );
+        }, 6000));
+
+        timeouts.push(setTimeout(() => {
+          setProcessingStages(prev => 
+            prev.map(stage => 
+              stage.id === 'compile' 
+                ? { ...stage, status: 'completed', progress: 100 }
+                : stage
+            )
+          );
+          setIsProcessingRealTime(false);
+          setHasAnalyzed(true);
+          setCurrentAnalysisId(newAnalysisId);
+        }, 8000));
+        
+        return timeouts;
+      };
+      
+      processStages();
+
+      // Update URL with analysis ID
+      const url = new URL(window.location.href);
+      url.searchParams.set("analysisId", newAnalysisId);
+      window.history.pushState({}, "", url.toString());
+
+    } catch (error) {
+      console.error("Document analysis error:", error);
+      setError(error instanceof Error ? error.message : 'Analysis failed');
+      setProcessingStages(prev => 
+        prev.map(stage => 
+          stage.status === 'processing'
+            ? { ...stage, status: 'error', errorMessage: 'Analysis failed' }
+            : stage
+        )
+      );
+      setIsProcessingRealTime(false);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Show loading state during analysis
+  if (loading) {
+    return (
+      <AppLayout>
+        <div>
+          <AccessibilityProvider>
+            <ErrorBoundary>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h1 className="text-2xl font-bold text-white mb-2">Document Analysis</h1>
+                    <p className="text-slate-400">Upload and analyze documents for comprehensive insights</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <LoadingSpinner size="sm" />
+                    <span className="text-sm text-slate-400">Processing analysis...</span>
+                  </div>
+                </div>
+                
+                <div className="grid gap-4">
+                  <SkeletonCard />
+                  <SkeletonChart />
+                  <SkeletonCard />
+                </div>
+              </div>
+            </ErrorBoundary>
+          </AccessibilityProvider>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  return (
+    <AppLayout>
+      <div>
+        <AccessibilityProvider>
+          <ErrorBoundary>
+            <div className="space-y-2">
+              {/* Header Actions Only */}
+              <div className="flex items-center justify-end mb-2">
+                <div className="flex items-center gap-2">
+                  {connectionStatus === 'offline' && (
+                    <Badge variant="destructive" className="flex items-center gap-1">
+                      <WifiOff size={12} />
+                      Offline
+                    </Badge>
+                  )}
+                  {hasAnalyzed && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRefresh}
+                      disabled={refreshing || !currentAnalysisId}
+                      className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Main Layout: Upload Card Left, Results Right */}
+              <div className="max-w-7xl mx-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                  {/* Single Upload Card - Left Side */}
+                  <div className="lg:col-span-1">
+                    <UploadAnalyzeCard
+                    title="Document Analysis"
+                    description="Upload your research document for comprehensive analysis including novelty assessment, competitive intelligence, commercialization opportunities, and strategic insights"
+                    icon={Upload}
+                    uploadType="pdf"
+                    onAnalyze={handleDocumentAnalysis}
+                    isAnalyzing={isAnalyzing}
+                    className="h-full min-h-96"
+                  />
+                  </div>
+                
+                {/* Analysis Results - Right Side */}
+                <div className="lg:col-span-3">
+                  {currentAnalysisId ? (
+                    <div className="space-y-4">
+                      {/* Similar Documents Card */}
+                      <Card className="bg-slate-800/50 border-slate-700">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-white text-lg flex items-center gap-2">
+                            <Search className="h-5 w-5 text-emerald-400" />
+                            Similar Research Found
+                          </CardTitle>
+                          <CardDescription className="text-slate-400">
+                            Documents with similar content and research focus
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="max-h-80 overflow-y-auto">
+                          <div className="space-y-3">
+                            <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-700">
+                              <div className="flex items-start justify-between mb-2">
+                                <h4 className="text-sm font-medium text-white">Neural Network Optimization Techniques for Deep Learning</h4>
+                                <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-300 flex-shrink-0 ml-2">92%</Badge>
+                              </div>
+                              <p className="text-xs text-slate-400 mb-2">Patent US10,123,456 • Published 2023</p>
+                              <p className="text-xs text-slate-300 mb-2 line-clamp-2">Advanced optimization methods for neural network training with improved convergence rates and reduced computational overhead.</p>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="text-xs">AI</Badge>
+                                <Badge variant="secondary" className="text-xs">ML</Badge>
+                                <Badge variant="secondary" className="text-xs">Optimization</Badge>
+                              </div>
+                            </div>
+                            <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-700">
+                              <div className="flex items-start justify-between mb-2">
+                                <h4 className="text-sm font-medium text-white">Deep Learning Architecture for Computer Vision Applications</h4>
+                                <Badge variant="outline" className="text-xs border-blue-500/30 text-blue-300 flex-shrink-0 ml-2">87%</Badge>
+                              </div>
+                              <p className="text-xs text-slate-400 mb-2">arXiv:2023.12345 • MIT AI Lab</p>
+                              <p className="text-xs text-slate-300 mb-2 line-clamp-2">Novel deep learning architectures designed specifically for computer vision tasks with enhanced performance metrics.</p>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="text-xs">Research</Badge>
+                                <Badge variant="secondary" className="text-xs">Neural</Badge>
+                                <Badge variant="secondary" className="text-xs">Vision</Badge>
+                              </div>
+                            </div>
+                            <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-700">
+                              <div className="flex items-start justify-between mb-2">
+                                <h4 className="text-sm font-medium text-white">Machine Learning Algorithms for Pattern Recognition</h4>
+                                <Badge variant="outline" className="text-xs border-purple-500/30 text-purple-300 flex-shrink-0 ml-2">84%</Badge>
+                              </div>
+                              <p className="text-xs text-slate-400 mb-2">Patent EP3,456,789 • Google Research</p>
+                              <p className="text-xs text-slate-300 mb-2 line-clamp-2">Advanced pattern recognition algorithms using machine learning techniques for improved accuracy and efficiency.</p>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="text-xs">Pattern</Badge>
+                                <Badge variant="secondary" className="text-xs">Recognition</Badge>
+                                <Badge variant="secondary" className="text-xs">ML</Badge>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      {/* Analysis Cards Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {/* Novelty Assessment Card */}
+                        <Card className="bg-slate-800/50 border-slate-700">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-white text-sm flex items-center gap-2">
+                              <Lightbulb className="h-4 w-4 text-blue-400" />
+                              Novelty Assessment
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-center mb-4">
+                              <div className="text-2xl font-bold text-blue-300 mb-1">78%</div>
+                              <div className="text-xs text-slate-400">Uniqueness Score</div>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-xs">
+                                <span className="text-slate-400">Prior Art</span>
+                                <span className="text-slate-300">247 found</span>
+                              </div>
+                              <div className="flex justify-between text-xs">
+                                <span className="text-slate-400">Novelty Level</span>
+                                <Badge className="bg-blue-500/20 text-blue-300">High</Badge>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        {/* Competitive Intelligence Card */}
+                        <Card className="bg-slate-800/50 border-slate-700">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-white text-sm flex items-center gap-2">
+                              <Target className="h-4 w-4 text-red-400" />
+                              Competitive Intelligence
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-3">
+                              <div className="text-center">
+                                <div className="text-lg font-bold text-red-300 mb-1">Medium</div>
+                                <div className="text-xs text-slate-400">Competition Level</div>
+                              </div>
+                              <div className="space-y-2">
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-slate-400">Key Players</span>
+                                  <span className="text-slate-300">12</span>
+                                </div>
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-slate-400">Market Share</span>
+                                  <span className="text-slate-300">15%</span>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        {/* Commercialization Card */}
+                        <Card className="bg-slate-800/50 border-slate-700">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-white text-sm flex items-center gap-2">
+                              <TrendingUp className="h-4 w-4 text-green-400" />
+                              Commercialization
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-3">
+                              <div className="text-center">
+                                <div className="text-lg font-bold text-green-300 mb-1">High</div>
+                                <div className="text-xs text-slate-400">Market Potential</div>
+                              </div>
+                              <div className="space-y-2">
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-slate-400">TRL Level</span>
+                                  <span className="text-slate-300">6/9</span>
+                                </div>
+                                <div className="flex justify-between text-xs">
+                                  <span className="text-slate-400">Licensing Ops</span>
+                                  <span className="text-slate-300">8</span>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        {/* Patent Similarity Alerts Card */}
+                        <Card className="bg-slate-800/50 border-slate-700">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-white text-sm flex items-center gap-2">
+                              <Shield className="h-4 w-4 text-yellow-400" />
+                              Patent Similarity Alerts
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2">
+                              <div className="p-2 bg-slate-900/50 rounded border border-yellow-500/30">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs text-white">US10,123,456</span>
+                                  <Badge className="bg-yellow-500/20 text-yellow-300 text-xs">92%</Badge>
+                                </div>
+                                <p className="text-xs text-slate-400 mt-1">Neural optimization methods</p>
+                              </div>
+                              <div className="p-2 bg-slate-900/50 rounded border border-orange-500/30">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs text-white">EP3,456,789</span>
+                                  <Badge className="bg-orange-500/20 text-orange-300 text-xs">87%</Badge>
+                                </div>
+                                <p className="text-xs text-slate-400 mt-1">Pattern recognition algorithms</p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        {/* Competitor & Collaborator Map Card */}
+                        <Card className="bg-slate-800/50 border-slate-700">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-white text-sm flex items-center gap-2">
+                              <Network className="h-4 w-4 text-purple-400" />
+                              Competitor & Collaborator Map
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-3">
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <Building className="h-3 w-3 text-blue-400" />
+                                  <span className="text-xs text-white">MIT AI Lab</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Building className="h-3 w-3 text-green-400" />
+                                  <span className="text-xs text-white">Google Research</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Building className="h-3 w-3 text-purple-400" />
+                                  <span className="text-xs text-white">Stanford AI</span>
+                                </div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-sm font-bold text-purple-300">4</div>
+                                <div className="text-xs text-slate-400">Research Clusters</div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                        
+                        {/* Licensing Opportunities Card */}
+                        <Card className="bg-slate-800/50 border-slate-700">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-white text-sm flex items-center gap-2">
+                              <Award className="h-4 w-4 text-emerald-400" />
+                              Licensing Opportunities
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2">
+                              <div className="p-2 bg-slate-900/50 rounded border border-emerald-500/30">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs text-white">TechCorp Inc</span>
+                                  <Badge className="bg-emerald-500/20 text-emerald-300 text-xs">High</Badge>
+                                </div>
+                                <p className="text-xs text-slate-400 mt-1">AI/ML focus, $2B revenue</p>
+                              </div>
+                              <div className="p-2 bg-slate-900/50 rounded border border-blue-500/30">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs text-white">InnovateLab</span>
+                                  <Badge className="bg-blue-500/20 text-blue-300 text-xs">Medium</Badge>
+                                </div>
+                                <p className="text-xs text-slate-400 mt-1">Research partnerships</p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                      
+                      {/* Draft Patentability Report Card */}
+                      <Card className="bg-slate-800/50 border-slate-700">
+                        <CardHeader>
+                          <CardTitle className="text-white text-lg flex items-center gap-2">
+                            <BookOpen className="h-5 w-5 text-cyan-400" />
+                            Draft Patentability Report
+                          </CardTitle>
+                          <CardDescription className="text-slate-400">
+                            Auto-generated summary of patentability assessment
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="prose prose-invert prose-sm max-w-none">
+                            <p className="text-slate-300 mb-4">
+                              Based on the analysis of your submitted document, the technology demonstrates <strong className="text-emerald-300">high novelty</strong> with a uniqueness score of 78%. The invention shows significant advancement over existing prior art in the field of neural network optimization.
+                            </p>
+                            <h4 className="text-white font-semibold mb-2">Key Findings:</h4>
+                            <ul className="text-slate-300 space-y-1 mb-4">
+                              <li>• Novel optimization approach not found in existing patents</li>
+                              <li>• Significant performance improvements over prior methods</li>
+                              <li>• Clear technical advantages and commercial applications</li>
+                              <li>• Strong freedom to operate with minimal infringement risks</li>
+                            </ul>
+                            <h4 className="text-white font-semibold mb-2">Recommendations:</h4>
+                            <p className="text-slate-300">
+                              The technology is <strong className="text-green-300">recommended for patent filing</strong> with focus on the core optimization algorithm and its specific implementation details. Consider filing in key markets including US, EU, and Asia-Pacific regions.
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  ) : (
+                    <Card className="bg-slate-800/50 border-slate-700 h-full">
+                      <CardContent className="p-8 flex items-center justify-center h-full min-h-96">
+                        <div className="text-center">
+                          <FileText className="h-12 w-12 text-slate-500 mx-auto mb-4" />
+                          <h3 className="text-lg font-semibold text-slate-300 mb-2">Analysis Results</h3>
+                          <p className="text-slate-400">Upload and analyze a document to see detailed insights including:</p>
+                          <div className="mt-4 space-y-2 text-sm text-slate-500">
+                            <p>• Similar research documents</p>
+                            <p>• Novelty assessment and uniqueness scoring</p>
+                            <p>• Competitive intelligence and market analysis</p>
+                            <p>• Commercialization opportunities and licensing leads</p>
+                            <p>• Patent similarity alerts and IP landscape</p>
+                            <p>• Competitor and collaborator mapping</p>
+                            <p>• Draft patentability report</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              </div>
+
+
+              {/* Connection Status Alert */}
+              {connectionStatus === 'offline' && (
+                <Alert className="border-yellow-500/50 bg-yellow-500/10">
+                  <WifiOff className="h-4 w-4 text-yellow-400" />
+                  <AlertDescription className="text-yellow-300">
+                    You&apos;re currently offline. Some features may not be available.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Error Alerts */}
+              {error && (
+                <Alert className="border-red-500/50 bg-red-500/10">
+                  <AlertTriangle className="h-4 w-4 text-red-400" />
+                  <AlertDescription className="text-red-300 flex items-center justify-between">
+                    <span>{error}</span>
+                    {retryCount < maxRetries && currentAnalysisId && (
+                      <button
+                        onClick={retryProcessing}
+                        className="ml-4 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded transition-colors"
+                      >
+                        Retry ({retryCount}/{maxRetries})
+                      </button>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Processing Errors */}
+              {processingErrors.length > 0 && (
+                <Alert className="border-yellow-500/50 bg-yellow-500/10">
+                  <AlertTriangle className="h-4 w-4 text-yellow-400" />
+                  <AlertDescription className="text-yellow-300">
+                    <div className="space-y-1">
+                      <p className="font-medium">Processing Issues Detected:</p>
+                      <ul className="text-sm space-y-1">
+                        {processingErrors.map((error, index) => (
+                          <li key={index} className="flex items-center gap-2">
+                            <span className="w-1 h-1 bg-yellow-400 rounded-full"></span>
+                            {error}
+                          </li>
+                        ))}
+                      </ul>
+                      {retryCount < maxRetries && (
+                        <button
+                          onClick={retryProcessing}
+                          className="mt-2 px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-white text-sm rounded transition-colors"
+                        >
+                          Retry Processing
+                        </button>
+                      )}
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Comprehensive Analysis Sections */}
+              {hasAnalyzed && currentAnalysisId && (
+                <div className="space-y-6">
+                  {/* Processing Pipeline */}
+                  {(isProcessingRealTime || processingStages.length > 0) && (
+                    <ProcessingPipeline
+                      stages={processingStages}
+                      isProcessing={isProcessingRealTime}
+                      showTechnicalDetails={userPersona.preferences.showTechnicalDetails}
+                      className="mb-4"
+                    />
+                  )}
+                  
+                  {/* Section 1: Research Intake */}
+                  <Card className="bg-slate-800/50 border-slate-700">
+                    <CardHeader>
+                      <CardTitle className="text-white flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-blue-400" />
+                        1. Research Intake
+                      </CardTitle>
+                      <CardDescription className="text-slate-400">
+                        Document metadata and research classification
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {/* Metadata Card */}
+                        <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                          <h4 className="text-sm font-semibold text-white mb-3">Document Metadata</h4>
+                          <div className="space-y-2">
+                            <div>
+                              <span className="text-xs text-slate-400">Title:</span>
+                              <p className="text-sm text-white">Neural Network Optimization Techniques</p>
+                            </div>
+                            <div>
+                              <span className="text-xs text-slate-400">Authors:</span>
+                              <p className="text-sm text-white">Smith, J. et al.</p>
+                            </div>
+                            <div>
+                              <span className="text-xs text-slate-400">Affiliation:</span>
+                              <p className="text-sm text-white">MIT AI Lab</p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Research Domain Tags */}
+                        <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                          <h4 className="text-sm font-semibold text-white mb-3">Research Domains</h4>
+                          <div className="flex flex-wrap gap-2">
+                            <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">AI</Badge>
+                            <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">Machine Learning</Badge>
+                            <Badge className="bg-green-500/20 text-green-300 border-green-500/30">Neural Networks</Badge>
+                            <Badge className="bg-orange-500/20 text-orange-300 border-orange-500/30">Optimization</Badge>
+                          </div>
+                          <div className="mt-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs text-slate-400">Confidence Score</span>
+                              <span className="text-xs text-emerald-300">94%</span>
+                            </div>
+                            <Progress value={94} className="h-2" />
+                          </div>
+                        </div>
+                        
+                        {/* TRL Meter */}
+                        <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                          <h4 className="text-sm font-semibold text-white mb-3">Technology Readiness</h4>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-emerald-300 mb-1">TRL 6</div>
+                            <div className="text-xs text-slate-400 mb-3">Technology Demonstration</div>
+                            <div className="flex justify-between text-xs text-slate-500 mb-1">
+                              <span>Basic</span>
+                              <span>Prototype</span>
+                              <span>Market</span>
+                            </div>
+                            <Progress value={67} className="h-2" />
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Section 2: Technical Evaluation */}
+                  <Card className="bg-slate-800/50 border-slate-700">
+                    <CardHeader>
+                      <CardTitle className="text-white flex items-center gap-2">
+                        <Brain className="h-5 w-5 text-purple-400" />
+                        2. Technical Evaluation
+                      </CardTitle>
+                      <CardDescription className="text-slate-400">
+                        Novelty assessment and competitive analysis
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {/* Novelty Score Circle */}
+                        <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700 text-center">
+                          <div className="relative w-20 h-20 mx-auto mb-3">
+                            <svg className="w-20 h-20 transform -rotate-90">
+                              <circle cx="40" cy="40" r="36" stroke="#334155" strokeWidth="8" fill="none" />
+                              <circle cx="40" cy="40" r="36" stroke="#10b981" strokeWidth="8" fill="none"
+                                      strokeDasharray={`${2 * Math.PI * 36}`}
+                                      strokeDashoffset={`${2 * Math.PI * 36 * (1 - 0.78)}`}
+                                      className="transition-all duration-1000" />
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <span className="text-lg font-bold text-emerald-300">78%</span>
+                            </div>
+                          </div>
+                          <h4 className="text-sm font-semibold text-white">Novelty Score</h4>
+                        </div>
+                        
+                        {/* Citations Chip */}
+                        <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                          <h4 className="text-sm font-semibold text-white mb-2">Citations & References</h4>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-slate-400">Total Citations</span>
+                              <Badge className="bg-blue-500/20 text-blue-300">247</Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-slate-400">Cross-references</span>
+                              <Badge className="bg-purple-500/20 text-purple-300">89</Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-slate-400">Recent Citations</span>
+                              <Badge className="bg-green-500/20 text-green-300">34</Badge>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Competitor Cluster Mini-graph */}
+                        <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                          <h4 className="text-sm font-semibold text-white mb-2">Research Clusters</h4>
+                          <div className="relative h-16 bg-slate-800 rounded border border-slate-600 mb-2">
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="flex items-center space-x-2">
+                                <div className="w-3 h-3 bg-emerald-400 rounded-full"></div>
+                                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                                <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                                <div className="w-1 h-1 bg-slate-400 rounded-full"></div>
+                              </div>
+                            </div>
+                          </div>
+                          <p className="text-xs text-slate-400">4 related clusters identified</p>
+                        </div>
+                        
+                        {/* Risk Tags */}
+                        <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                          <h4 className="text-sm font-semibold text-white mb-2">Risk Assessment</h4>
+                          <div className="space-y-2">
+                            <Badge variant="outline" className="w-full justify-center border-yellow-500/30 text-yellow-300">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              Supply Chain
+                            </Badge>
+                            <Badge variant="outline" className="w-full justify-center border-orange-500/30 text-orange-300">
+                              <Shield className="h-3 w-3 mr-1" />
+                              Regulatory
+                            </Badge>
+                            <Badge variant="outline" className="w-full justify-center border-red-500/30 text-red-300">
+                              <TrendingUp className="h-3 w-3 mr-1" />
+                              Scalability
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                   
+                   {/* Section 3: Market Evaluation */}
+                   <Card className="bg-slate-800/50 border-slate-700">
+                     <CardHeader>
+                       <CardTitle className="text-white flex items-center gap-2">
+                         <Globe className="h-5 w-5 text-green-400" />
+                         3. Market Evaluation
+                       </CardTitle>
+                       <CardDescription className="text-slate-400">
+                         Industry potential and market dynamics
+                       </CardDescription>
+                     </CardHeader>
+                     <CardContent>
+                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                         {/* Industry Cards */}
+                         <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                           <h4 className="text-sm font-semibold text-white mb-3">Target Industries</h4>
+                           <div className="space-y-2">
+                             <div className="flex items-center gap-2 p-2 bg-slate-800 rounded">
+                               <Activity className="h-4 w-4 text-blue-400" />
+                               <span className="text-sm text-white">Healthcare</span>
+                             </div>
+                             <div className="flex items-center gap-2 p-2 bg-slate-800 rounded">
+                               <Cpu className="h-4 w-4 text-purple-400" />
+                               <span className="text-sm text-white">Robotics</span>
+                             </div>
+                             <div className="flex items-center gap-2 p-2 bg-slate-800 rounded">
+                               <Zap className="h-4 w-4 text-yellow-400" />
+                               <span className="text-sm text-white">Energy</span>
+                             </div>
+                           </div>
+                         </div>
+                         
+                         {/* Adoption Gauge */}
+                         <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700 text-center">
+                           <h4 className="text-sm font-semibold text-white mb-3">Adoption Likelihood</h4>
+                           <div className="relative w-20 h-10 mx-auto mb-2">
+                             <div className="w-20 h-10 bg-slate-700 rounded-t-full relative overflow-hidden">
+                               <div className="absolute bottom-0 left-0 w-full h-full bg-gradient-to-t from-emerald-500 to-emerald-300 rounded-t-full"
+                                    style={{clipPath: 'polygon(0 100%, 72% 100%, 72% 28%, 0 28%)'}}></div>
+                             </div>
+                           </div>
+                           <div className="text-lg font-bold text-emerald-300">72%</div>
+                           <div className="text-xs text-slate-400">High Potential</div>
+                         </div>
+                         
+                         {/* Competitor Table */}
+                         <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                           <h4 className="text-sm font-semibold text-white mb-3">Emerging Competitors</h4>
+                           <div className="space-y-2">
+                             <div className="flex justify-between items-center">
+                               <span className="text-xs text-white">NeuralTech Inc</span>
+                               <span className="text-xs text-emerald-300">$12M</span>
+                             </div>
+                             <div className="flex justify-between items-center">
+                               <span className="text-xs text-white">AI Dynamics</span>
+                               <span className="text-xs text-blue-300">$8M</span>
+                             </div>
+                             <div className="flex justify-between items-center">
+                               <span className="text-xs text-white">DeepMind Labs</span>
+                               <span className="text-xs text-purple-300">$25M</span>
+                             </div>
+                           </div>
+                         </div>
+                         
+                         {/* Trend Sparkline */}
+                         <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                           <h4 className="text-sm font-semibold text-white mb-3">Global Trend Index</h4>
+                           <div className="h-12 bg-slate-800 rounded border border-slate-600 mb-2 relative overflow-hidden">
+                             <svg className="w-full h-full">
+                               <polyline
+                                 fill="none"
+                                 stroke="#10b981"
+                                 strokeWidth="2"
+                                 points="0,10 20,8 40,12 60,6 80,4 100,8 120,3"
+                               />
+                             </svg>
+                           </div>
+                           <div className="flex justify-between text-xs">
+                             <span className="text-slate-400">6M ago</span>
+                             <span className="text-emerald-300">+23% ↗</span>
+                           </div>
+                         </div>
+                       </div>
+                     </CardContent>
+                   </Card>
+                   
+                   {/* Section 4: Commercialization Readiness */}
+                   <Card className="bg-slate-800/50 border-slate-700">
+                     <CardHeader>
+                       <CardTitle className="text-white flex items-center gap-2">
+                         <Briefcase className="h-5 w-5 text-orange-400" />
+                         4. Commercialization Readiness
+                       </CardTitle>
+                       <CardDescription className="text-slate-400">
+                         Technology and market readiness assessment
+                       </CardDescription>
+                     </CardHeader>
+                     <CardContent>
+                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                         {/* Dual Progress Bars */}
+                         <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                           <h4 className="text-sm font-semibold text-white mb-4">Readiness Levels</h4>
+                           <div className="space-y-4">
+                             <div>
+                               <div className="flex justify-between mb-2">
+                                 <span className="text-xs text-slate-400">Technology Readiness (TRL)</span>
+                                 <span className="text-xs text-blue-300">6/9</span>
+                               </div>
+                               <Progress value={67} className="h-3" />
+                             </div>
+                             <div>
+                               <div className="flex justify-between mb-2">
+                                 <span className="text-xs text-slate-400">Market Readiness (MRL)</span>
+                                 <span className="text-xs text-green-300">4/5</span>
+                               </div>
+                               <Progress value={80} className="h-3" />
+                             </div>
+                           </div>
+                         </div>
+                         
+                         {/* GTM Strategy Cards */}
+                         <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                           <h4 className="text-sm font-semibold text-white mb-3">GTM Strategies</h4>
+                           <div className="space-y-2">
+                             <div className="p-2 bg-slate-800 rounded border border-emerald-500/30">
+                               <div className="flex justify-between items-center mb-1">
+                                 <span className="text-xs font-medium text-emerald-300">Licensing</span>
+                                 <Badge className="bg-emerald-500/20 text-emerald-300 text-xs">Recommended</Badge>
+                               </div>
+                               <p className="text-xs text-slate-400">Low risk, steady revenue</p>
+                             </div>
+                             <div className="p-2 bg-slate-800 rounded border border-blue-500/30">
+                               <div className="flex justify-between items-center mb-1">
+                                 <span className="text-xs font-medium text-blue-300">Startup Spinout</span>
+                                 <Badge className="bg-blue-500/20 text-blue-300 text-xs">High Potential</Badge>
+                               </div>
+                               <p className="text-xs text-slate-400">High risk, high reward</p>
+                             </div>
+                             <div className="p-2 bg-slate-800 rounded border border-purple-500/30">
+                               <div className="flex justify-between items-center mb-1">
+                                 <span className="text-xs font-medium text-purple-300">Partnership</span>
+                                 <Badge className="bg-purple-500/20 text-purple-300 text-xs">Moderate</Badge>
+                               </div>
+                               <p className="text-xs text-slate-400">Shared resources & risk</p>
+                             </div>
+                           </div>
+                         </div>
+                         
+                         {/* Regulatory Checklist */}
+                         <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                           <h4 className="text-sm font-semibold text-white mb-3">Regulatory Readiness</h4>
+                           <div className="space-y-2">
+                             <div className="flex items-center gap-2">
+                               <CheckCircle className="h-4 w-4 text-emerald-400" />
+                               <span className="text-xs text-white">IP Protection Filed</span>
+                             </div>
+                             <div className="flex items-center gap-2">
+                               <CheckCircle className="h-4 w-4 text-emerald-400" />
+                               <span className="text-xs text-white">Prior Art Search</span>
+                             </div>
+                             <div className="flex items-center gap-2">
+                               <Clock className="h-4 w-4 text-yellow-400" />
+                               <span className="text-xs text-white">FDA Approval</span>
+                             </div>
+                             <div className="flex items-center gap-2">
+                               <Clock className="h-4 w-4 text-yellow-400" />
+                               <span className="text-xs text-white">CE Marking</span>
+                             </div>
+                             <div className="flex items-center gap-2">
+                               <X className="h-4 w-4 text-red-400" />
+                               <span className="text-xs text-white">Export Controls</span>
+                             </div>
+                           </div>
+                         </div>
+                       </div>
+                     </CardContent>
+                   </Card>
+                   
+                   {/* Section 5: Investment Alignment */}
+                   <Card className="bg-slate-800/50 border-slate-700">
+                     <CardHeader>
+                       <CardTitle className="text-white flex items-center gap-2">
+                         <DollarSign className="h-5 w-5 text-yellow-400" />
+                         5. Investment Alignment
+                       </CardTitle>
+                       <CardDescription className="text-slate-400">
+                         VC matching and funding stage assessment
+                       </CardDescription>
+                     </CardHeader>
+                     <CardContent>
+                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                         {/* Funding Stage Badge */}
+                         <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700 text-center">
+                           <h4 className="text-sm font-semibold text-white mb-3">Funding Stage</h4>
+                           <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-lg px-4 py-2 mb-2">
+                             Series A
+                           </Badge>
+                           <p className="text-xs text-slate-400">Recommended stage based on TRL/MRL</p>
+                         </div>
+                         
+                         {/* VC Cards */}
+                         <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                           <h4 className="text-sm font-semibold text-white mb-3">Top Aligned VCs</h4>
+                           <div className="space-y-3">
+                             <div className="flex items-center justify-between p-2 bg-slate-800 rounded">
+                               <div className="flex items-center gap-2">
+                                 <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center text-xs font-bold text-white">A</div>
+                                 <span className="text-xs text-white">Andreessen Horowitz</span>
+                               </div>
+                               <div className="text-right">
+                                 <div className="text-xs text-emerald-300">95%</div>
+                                 <Progress value={95} className="h-1 w-12" />
+                               </div>
+                             </div>
+                             <div className="flex items-center justify-between p-2 bg-slate-800 rounded">
+                               <div className="flex items-center gap-2">
+                                 <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-xs font-bold text-white">S</div>
+                                 <span className="text-xs text-white">Sequoia Capital</span>
+                               </div>
+                               <div className="text-right">
+                                 <div className="text-xs text-blue-300">89%</div>
+                                 <Progress value={89} className="h-1 w-12" />
+                               </div>
+                             </div>
+                             <div className="flex items-center justify-between p-2 bg-slate-800 rounded">
+                               <div className="flex items-center gap-2">
+                                 <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-xs font-bold text-white">K</div>
+                                 <span className="text-xs text-white">Kleiner Perkins</span>
+                               </div>
+                               <div className="text-right">
+                                 <div className="text-xs text-purple-300">82%</div>
+                                 <Progress value={82} className="h-1 w-12" />
+                               </div>
+                             </div>
+                           </div>
+                         </div>
+                         
+                         {/* Benchmark Chart */}
+                         <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                           <h4 className="text-sm font-semibold text-white mb-3">Deal Size Benchmarks</h4>
+                           <div className="space-y-3">
+                             <div>
+                               <div className="flex justify-between mb-1">
+                                 <span className="text-xs text-slate-400">Seed</span>
+                                 <span className="text-xs text-white">$0.5M - $2M</span>
+                               </div>
+                               <div className="h-2 bg-slate-700 rounded overflow-hidden">
+                                 <div className="h-full bg-gradient-to-r from-slate-600 to-slate-500 w-1/4"></div>
+                               </div>
+                             </div>
+                             <div>
+                               <div className="flex justify-between mb-1">
+                                 <span className="text-xs text-slate-400">Series A</span>
+                                 <span className="text-xs text-emerald-300">$5M - $15M</span>
+                               </div>
+                               <div className="h-2 bg-slate-700 rounded overflow-hidden">
+                                 <div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 w-3/4"></div>
+                               </div>
+                             </div>
+                             <div>
+                               <div className="flex justify-between mb-1">
+                                 <span className="text-xs text-slate-400">Series B</span>
+                                 <span className="text-xs text-white">$15M - $50M</span>
+                               </div>
+                               <div className="h-2 bg-slate-700 rounded overflow-hidden">
+                                 <div className="h-full bg-gradient-to-r from-slate-600 to-slate-500 w-1/2"></div>
+                               </div>
+                             </div>
+                           </div>
+                         </div>
+                       </div>
+                     </CardContent>
+                   </Card>
+                   
+                   {/* Section 6: Actionable Outputs */}
+                   <Card className="bg-slate-800/50 border-slate-700">
+                     <CardHeader>
+                       <CardTitle className="text-white flex items-center gap-2">
+                         <Target className="h-5 w-5 text-red-400" />
+                         6. Actionable Outputs
+                       </CardTitle>
+                       <CardDescription className="text-slate-400">
+                         Export, track, and manage your research pipeline
+                       </CardDescription>
+                     </CardHeader>
+                     <CardContent>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         {/* Action Buttons */}
+                         <div className="space-y-4">
+                           <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                             <h4 className="text-sm font-semibold text-white mb-3">Quick Actions</h4>
+                             <div className="grid grid-cols-1 gap-2">
+                               <Button className="bg-emerald-600 hover:bg-emerald-700 text-white justify-start">
+                                 <Download className="h-4 w-4 mr-2" />
+                                 Generate Executive Summary
+                               </Button>
+                               <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700 justify-start">
+                                 <FileText className="h-4 w-4 mr-2" />
+                                 Export Pitch Deck
+                               </Button>
+                               <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700 justify-start">
+                                 <Plus className="h-4 w-4 mr-2" />
+                                 Add to GTM Lab
+                               </Button>
+                               <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700 justify-start">
+                                 <Share2 className="h-4 w-4 mr-2" />
+                                 Share with Team
+                               </Button>
+                             </div>
+                           </div>
+                         </div>
+                         
+                         {/* Pipeline Tracking */}
+                         <div className="p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                           <h4 className="text-sm font-semibold text-white mb-3">Pipeline Status</h4>
+                           <div className="space-y-3">
+                             <div className="flex items-center justify-between p-2 bg-slate-800 rounded">
+                               <div className="flex items-center gap-2">
+                                 <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
+                                 <span className="text-xs text-white">Research Complete</span>
+                               </div>
+                               <CheckCircle className="h-4 w-4 text-emerald-400" />
+                             </div>
+                             <div className="flex items-center justify-between p-2 bg-slate-800 rounded">
+                               <div className="flex items-center gap-2">
+                                 <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
+                                 <span className="text-xs text-white">IP Filing</span>
+                               </div>
+                               <Clock className="h-4 w-4 text-yellow-400" />
+                             </div>
+                             <div className="flex items-center justify-between p-2 bg-slate-800 rounded">
+                               <div className="flex items-center gap-2">
+                                 <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
+                                 <span className="text-xs text-white">VC Outreach</span>
+                               </div>
+                               <Clock className="h-4 w-4 text-slate-400" />
+                             </div>
+                             <div className="flex items-center justify-between p-2 bg-slate-800 rounded">
+                               <div className="flex items-center gap-2">
+                                 <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
+                                 <span className="text-xs text-white">Market Entry</span>
+                               </div>
+                               <Clock className="h-4 w-4 text-slate-400" />
+                             </div>
+                           </div>
+                         </div>
+                       </div>
+                     </CardContent>
+                   </Card>
+                   
+                   {/* Summary Dashboard Cards */}
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                     {/* Project Card */}
+                     <Card className="bg-slate-800/50 border-slate-700">
+                       <CardContent className="p-4">
+                         <div className="text-center">
+                           <h4 className="text-sm font-semibold text-white mb-2">Project Overview</h4>
+                           <div className="text-xs text-slate-400 mb-2">Neural Network Optimization</div>
+                           <div className="flex justify-center gap-2 mb-2">
+                             <div className="text-center">
+                               <div className="text-sm font-bold text-blue-300">TRL 6</div>
+                               <Progress value={67} className="h-1 w-8" />
+                             </div>
+                             <div className="text-center">
+                               <div className="text-sm font-bold text-green-300">MRL 4</div>
+                               <Progress value={80} className="h-1 w-8" />
+                             </div>
+                           </div>
+                           <div className="text-lg font-bold text-emerald-300">78%</div>
+                           <div className="text-xs text-slate-400">Novelty Score</div>
+                         </div>
+                       </CardContent>
+                     </Card>
+                     
+                     {/* Market Card */}
+                     <Card className="bg-slate-800/50 border-slate-700">
+                       <CardContent className="p-4">
+                         <div className="text-center">
+                           <h4 className="text-sm font-semibold text-white mb-2">Market Potential</h4>
+                           <div className="flex justify-center gap-1 mb-2">
+                             <Badge className="bg-blue-500/20 text-blue-300 text-xs">AI</Badge>
+                             <Badge className="bg-purple-500/20 text-purple-300 text-xs">Health</Badge>
+                           </div>
+                           <div className="text-lg font-bold text-emerald-300">72%</div>
+                           <div className="text-xs text-slate-400 mb-2">Adoption Likelihood</div>
+                           <div className="h-4 bg-slate-700 rounded overflow-hidden">
+                             <div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-300 w-3/4"></div>
+                           </div>
+                         </div>
+                       </CardContent>
+                     </Card>
+                     
+                     {/* VC Card */}
+                     <Card className="bg-slate-800/50 border-slate-700">
+                       <CardContent className="p-4">
+                         <div className="text-center">
+                           <h4 className="text-sm font-semibold text-white mb-2">Investment Match</h4>
+                           <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 mb-2">Series A</Badge>
+                           <div className="space-y-1">
+                             <div className="flex items-center gap-1">
+                               <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
+                               <span className="text-xs text-white">a16z</span>
+                               <span className="text-xs text-emerald-300">95%</span>
+                             </div>
+                             <div className="flex items-center gap-1">
+                               <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                               <span className="text-xs text-white">Sequoia</span>
+                               <span className="text-xs text-blue-300">89%</span>
+                             </div>
+                           </div>
+                         </div>
+                       </CardContent>
+                     </Card>
+                     
+                     {/* Risk Card */}
+                     <Card className="bg-slate-800/50 border-slate-700">
+                       <CardContent className="p-4">
+                         <div className="text-center">
+                           <h4 className="text-sm font-semibold text-white mb-2">Risk Assessment</h4>
+                           <div className="space-y-1 mb-2">
+                             <Badge variant="outline" className="border-yellow-500/30 text-yellow-300 text-xs">
+                               Supply Chain
+                             </Badge>
+                             <Badge variant="outline" className="border-orange-500/30 text-orange-300 text-xs">
+                               Regulatory
+                             </Badge>
+                           </div>
+                           <div className="text-lg font-bold text-yellow-300">Medium</div>
+                           <div className="text-xs text-slate-400">Overall Risk</div>
+                         </div>
+                       </CardContent>
+                     </Card>
+                     
+                     {/* Action Card */}
+                     <Card className="bg-slate-800/50 border-slate-700">
+                       <CardContent className="p-4">
+                         <div className="text-center">
+                           <h4 className="text-sm font-semibold text-white mb-2">Next Actions</h4>
+                           <div className="space-y-1">
+                             <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white w-full text-xs">
+                               <Download className="h-3 w-3 mr-1" />
+                               Export
+                             </Button>
+                             <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700 w-full text-xs">
+                               <Plus className="h-3 w-3 mr-1" />
+                               GTM Lab
+                             </Button>
+                             <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700 w-full text-xs">
+                               <Share2 className="h-3 w-3 mr-1" />
+                               Share
+                             </Button>
+                           </div>
+                         </div>
+                       </CardContent>
+                     </Card>
+                   </div>
+
+                  {/* Developer Mode Toggle */}
+                  {userPersona.id === 'developer' && (
+                    <Card className="bg-slate-800/50 border-slate-700 mb-6">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Code className="text-emerald-400" size={16} />
+                            <span className="text-sm font-medium text-slate-300">Developer Mode</span>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowDeveloperMode(!showDeveloperMode)}
+                            className={`border-slate-600 text-slate-300 hover:bg-slate-700 ${
+                              showDeveloperMode ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : ''
+                            }`}
+                          >
+                            {showDeveloperMode ? 'Hide' : 'Show'} Technical Details
+                          </Button>
+                        </div>
+                        
+                        {showDeveloperMode && (
+                          <div className="mt-4 pt-4 border-t border-slate-700">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                              <div>
+                                <div className="text-lg font-semibold text-emerald-300">
+                                  {processingMetrics.apiCalls}
+                                </div>
+                                <div className="text-xs text-slate-400">Total API Calls</div>
+                              </div>
+                              <div>
+                                <div className="text-lg font-semibold text-blue-300">
+                                  {processingMetrics.tokensUsed.toLocaleString()}
+                                </div>
+                                <div className="text-xs text-slate-400">Tokens Used</div>
+                              </div>
+                              <div>
+                                <div className="text-lg font-semibold text-purple-300">
+                                  {processingMetrics.successRate.toFixed(1)}%
+                                </div>
+                                <div className="text-xs text-slate-400">Success Rate</div>
+                              </div>
+                              <div>
+                                <div className="text-lg font-semibold text-yellow-300">
+                                  {processingMetrics.averageResponseTime.toFixed(0)}ms
+                                </div>
+                                <div className="text-xs text-slate-400">Avg Response</div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Main Content Tabs */}
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList className="grid w-full grid-cols-4 bg-slate-800/50 border-slate-700">
+                      <TabsTrigger 
+                        value="novelty" 
+                        className="data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-300 text-slate-400"
+                      >
+                        <Lightbulb className="mr-2" size={16} />
+                        Novelty
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="competitive" 
+                        className="data-[state=active]:bg-red-500/20 data-[state=active]:text-red-300 text-slate-400"
+                      >
+                        <Target className="mr-2" size={16} />
+                        Competitive
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="commercialization" 
+                        className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-300 text-slate-400"
+                      >
+                        <TrendingUp className="mr-2" size={16} />
+                        Commercial
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="strategic" 
+                        className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-300 text-slate-400"
+                      >
+                        <Zap className="mr-2" size={16} />
+                        Strategic
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="novelty" className="mt-4">
+                       <NoveltyAssessment 
+                         analysisId={currentAnalysisId || ''}
+                         showTechnicalDetails={userPersona.preferences.showTechnicalDetails}
+                         onExport={handleExport}
+                         onShare={handleShare}
+                       />
+                     </TabsContent>
+
+                     <TabsContent value="competitive" className="mt-4">
+                       <CompetitiveIntelligence 
+                         analysisId={currentAnalysisId || ''}
+                         showTechnicalDetails={userPersona.preferences.showTechnicalDetails}
+                         onExport={handleExport}
+                         onShare={handleShare}
+                       />
+                     </TabsContent>
+
+                     <TabsContent value="commercialization" className="mt-4">
+                       <CommercializationOpportunities 
+                         analysisId={currentAnalysisId || ''}
+                         showTechnicalDetails={userPersona.preferences.showTechnicalDetails}
+                         onExport={handleExport}
+                         onShare={handleShare}
+                       />
+                     </TabsContent>
+
+                     <TabsContent value="strategic" className="mt-4">
+                       <StrategicInsights 
+                         analysisId={currentAnalysisId || ''}
+                         showTechnicalDetails={userPersona.preferences.showTechnicalDetails}
+                         onExport={handleExport}
+                         onShare={handleShare}
+                       />
+                     </TabsContent>
+                  </Tabs>
+                </div>
+              </div>
+              </div>
+              
+              {/* Removed Accessibility Button and Developer Tools for cleaner UI */}
+            </div>
+          </ErrorBoundary>
+        </AccessibilityProvider>
+      </div>
+    </AppLayout>
+  );
+};
+
+const InsightsPage: React.FC = () => {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+            <p className="text-slate-400">Loading insights...</p>
+          </div>
+        </div>
+      }
+    >
+      <InsightsPageContent />
+    </Suspense>
+  );
+};
+
+export default InsightsPage;

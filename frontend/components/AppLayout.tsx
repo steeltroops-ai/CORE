@@ -8,9 +8,10 @@ import { ChatProvider, useChatContext } from "../contexts/ChatContext";
 
 interface AppLayoutProps {
   children: React.ReactNode;
+  headerHeight?: 3 | 4 | 5; // Header height level: 3=py-3, 4=py-4, 5=py-5 (matches sidebar logo)
 }
 
-function AppLayoutContent({ children }: AppLayoutProps) {
+function AppLayoutContent({ children, headerHeight = 5 }: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [isTablet, setIsTablet] = useState(false);
   const { isChatOpen, isMobile, closeChat, setIsMobile } = useChatContext();
@@ -68,10 +69,11 @@ function AppLayoutContent({ children }: AppLayoutProps) {
         sidebarCollapsed={sidebarCollapsed} 
         isMobile={isMobile}
         isTablet={isTablet}
+        heightLevel={headerHeight}
       />
 
       {/* Main Layout Container */}
-      <div className="flex h-screen pt-14 md:pt-16">
+      <div className="flex h-screen pt-16">
         {/* Dashboard Content Area */}
         <main
           className={`flex-1 chat-content-transition overflow-auto transition-all duration-300 ease-in-out`}
@@ -80,7 +82,7 @@ function AppLayoutContent({ children }: AppLayoutProps) {
             marginRight: isChatOpen ? (isMobile ? '0' : chatSidebarWidth) : '0',
           }}
         >
-          <div className="px-3 py-3 xs:px-4 xs:py-4 sm:px-6 sm:py-4 lg:px-8 lg:py-6 h-full">
+          <div className="container mx-auto px-4 py-4 max-w-7xl h-full">
             {children}
           </div>
         </main>
@@ -102,10 +104,10 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   );
 }
 
-export function AppLayout({ children }: AppLayoutProps) {
+export function AppLayout({ children, headerHeight }: AppLayoutProps) {
   return (
     <ChatProvider>
-      <AppLayoutContent>{children}</AppLayoutContent>
+      <AppLayoutContent headerHeight={headerHeight}>{children}</AppLayoutContent>
     </ChatProvider>
   );
 }

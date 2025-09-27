@@ -22,6 +22,70 @@ router = APIRouter()
 
 ANALYSIS_DB: Dict[str, AnalysisRecord] = {}
 
+# Initialize with sample data for demo purposes
+def _initialize_sample_data():
+    """Initialize ANALYSIS_DB with sample data for demo purposes"""
+    from ..models.analysis import TechTransferAnalysis, StakeholderMap, DocumentHit
+    
+    # Create sample tech transfer analysis
+    sample_patents = [
+        DocumentHit(
+            id="US123456",
+            index="patents",
+            title="Advanced Catalyst Membrane for Electrolysis",
+            summary="A novel membrane design for improved electrolysis efficiency",
+            score=0.85,
+            url="https://patents.google.com/patent/US123456",
+            inventors=["Dr. Smith", "Dr. Johnson"],
+            assignees=["Tech Corp"]
+        )
+    ]
+    
+    sample_publications = [
+        DocumentHit(
+            id="pub001",
+            index="publications",
+            title="Membrane Technology in Renewable Energy",
+            summary="Review of membrane applications in clean energy",
+            score=0.78,
+            url="https://example.com/publication/001",
+            inventors=["Prof. Wilson"],
+            institutions=["MIT"]
+        )
+    ]
+    
+    sample_stakeholders = StakeholderMap(
+        inventors=["Dr. Smith", "Dr. Johnson"],
+        assignees=["Tech Corp"],
+        institutions=["MIT", "Stanford"]
+    )
+    
+    sample_tech_transfer = TechTransferAnalysis(
+        novelty_score=0.75,
+        top_patents=sample_patents,
+        top_publications=sample_publications,
+        stakeholders=sample_stakeholders,
+        licensing_opportunities=[
+            "Partnership opportunity with Tech Corp",
+            "Licensing potential with Clean Energy Inc"
+        ],
+        retrieval_count=25
+    )
+    
+    # Create sample analysis record
+    sample_record = AnalysisRecord(
+        analysis_id="demo-sample-analysis",
+        title="Adaptive Catalyst Membranes for Electrolysis",
+        abstract="We present a catalyst membrane design that adjusts porosity under load to reduce degradation and improve efficiency in electrolysis applications.",
+        tech_transfer=sample_tech_transfer
+    )
+    
+    ANALYSIS_DB["demo-sample-analysis"] = sample_record
+    logger.info("Sample analysis data initialized")
+
+# Initialize sample data on module load
+_initialize_sample_data()
+
 
 class IngestRequest(BaseModel):
     title: str

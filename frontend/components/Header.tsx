@@ -120,9 +120,10 @@ interface HeaderProps {
   sidebarCollapsed: boolean;
   isMobile?: boolean;
   isTablet?: boolean;
+  heightLevel?: 3 | 4 | 5; // Height configuration: 3=py-3, 4=py-4, 5=py-5
 }
 
-export function Header({ sidebarCollapsed, isMobile = false, isTablet = false }: HeaderProps) {
+export function Header({ sidebarCollapsed, isMobile = false, isTablet = false, heightLevel = 5 }: HeaderProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isChatOpen, toggleChat } = useChatContext();
@@ -140,13 +141,23 @@ export function Header({ sidebarCollapsed, isMobile = false, isTablet = false }:
     setMobileMenuOpen(false);
   }, [pathname]);
 
+  // Get padding class based on height level
+  const getPaddingClass = (level: number) => {
+    switch (level) {
+      case 3: return 'py-3';
+      case 4: return 'py-4';
+      case 5: return 'py-5';
+      default: return 'py-5';
+    }
+  };
+
   return (
     <header
-      className={`fixed top-0 right-0 z-30 h-14 md:h-16 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 transition-all duration-300 ${
+      className={`fixed top-0 right-0 z-30 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 transition-all duration-300 ${
         isMobile ? "left-0" : sidebarCollapsed ? "left-16" : "left-64"
       }`}
     >
-      <div className="flex items-center justify-between h-full px-3 xs:px-4 sm:px-6">
+      <div className={`flex items-center justify-between px-3 xs:px-4 sm:px-6 ${getPaddingClass(heightLevel)}`}>
         {/* Mobile Menu Button & Title */}
         <div className="flex items-center space-x-3 md:space-x-4">
           {isMobile && (
@@ -173,43 +184,9 @@ export function Header({ sidebarCollapsed, isMobile = false, isTablet = false }:
           </div>
         </div>
 
-        {/* Right Side Actions */}
+        {/* Right side - Profile button (only when authenticated) */}
         <div className="flex items-center space-x-2 sm:space-x-4">
-          {/* Chat Toggle Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleChat}
-            className={`p-2 hover:bg-slate-800 transition-colors min-h-touch ${
-              isChatOpen 
-                ? "text-emerald-400 hover:text-emerald-300" 
-                : "text-slate-400 hover:text-white"
-            }`}
-            aria-label={isChatOpen ? "Close chat" : "Open chat"}
-          >
-            {isChatOpen ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <MessageSquare className="h-5 w-5" />
-            )}
-          </Button>
-
-          {/* User Authentication */}
-          <SafeSignedOut>
-            <div className="flex items-center gap-3">
-              <SafeSignInButton mode="modal">
-                <button className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-emerald-400 transition-colors duration-200">
-                  Sign In
-                </button>
-              </SafeSignInButton>
-              <SafeSignUpButton mode="modal">
-                <button className="px-4 py-2 text-sm font-medium bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-all duration-200">
-                  Sign Up
-                </button>
-              </SafeSignUpButton>
-            </div>
-          </SafeSignedOut>
-
+          {/* User Authentication - Only show profile when signed in */}
           <SafeSignedIn>
             <SafeUserButton
               appearance={{
